@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0b2540">
+<title>คิวแบด — จัดกลุ่มก๊วนแบดมินตัน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400..900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --night:#0b2540;        /* penguin-back navy */
+    --deep:#123a5e;
+    --glacier:#1d6fa5;      /* primary action blue */
+    --glacier-2:#2f86bd;
+    --ice:#e7f3fb;          /* page background */
+    --card:#ffffff;
+    --ink:#102638;
+    --muted:#5c7a91;
+    --edge:#d8e8f2;
+    --line:#f2f9ff;
+    --beak:#f79b3e;         /* penguin-beak orange accent */
+    --warn:#ef6349;
+    --exempt:#8a5cf6;
+    --rest:#a0895e;
+    --aurora-a:#4fe0bd;
+    --aurora-b:#7f9cf9;
+    /* aliases kept for existing inline styles */
+    --court:var(--glacier);
+    --court-dark:var(--deep);
+    --shuttle:var(--beak);
+    --shadow:0 1px 2px rgba(13,42,68,.05),0 10px 30px rgba(13,42,68,.09);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Noto Sans Thai','Segoe UI',system-ui,sans-serif;
+    background:var(--ice);
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(255,255,255,.95) 0 1.5px, transparent 2.2px),
+      radial-gradient(circle at 64% 24%, rgba(255,255,255,.75) 0 1.3px, transparent 2px),
+      radial-gradient(circle at 86% 52%, rgba(255,255,255,.85) 0 1.4px, transparent 2px),
+      radial-gradient(circle at 30% 76%, rgba(255,255,255,.7) 0 1.3px, transparent 2px),
+      radial-gradient(120% 70% at 85% 108%, rgba(184,220,242,.55), transparent 60%),
+      radial-gradient(110% 60% at 8% 112%, rgba(199,230,247,.6), transparent 55%),
+      linear-gradient(180deg,#e7f3fb 0%,#eaf5fc 40%,#dfeef9 100%);
+    background-size:190px 190px,230px 230px,270px 270px,210px 210px,100% 100%,100% 100%,100% 100%;
+    background-attachment:fixed;
+    color:var(--ink);
+    line-height:1.5; padding-bottom:96px;
+  }
+  h1,h2,h3{margin:0;font-weight:800;letter-spacing:-.01em}
+  button{font-family:inherit;cursor:pointer;border:none;background:none}
+  input,select,textarea{font-family:inherit;font-size:16px}
+  ::selection{background:rgba(79,224,189,.35)}
+
+  /* ===== header — arctic night, aurora + snowfall ===== */
+  header{
+    background:var(--night);
+    background-image:
+      radial-gradient(95% 130% at 88% -45%, rgba(79,224,189,.30), transparent 62%),
+      radial-gradient(75% 120% at 4% -40%, rgba(127,156,249,.34), transparent 60%),
+      radial-gradient(50% 65% at 55% -25%, rgba(247,155,62,.12), transparent 70%),
+      linear-gradient(180deg,#103457 0%,#0b2540 100%);
+    color:var(--line); padding:20px 16px 42px;
+    position:relative; overflow:hidden;
+  }
+  header .aurora{
+    position:absolute; inset:-45% -25%; pointer-events:none;
+    background:
+      radial-gradient(42% 26% at 28% 34%, rgba(79,224,189,.20), transparent 70%),
+      radial-gradient(38% 24% at 72% 28%, rgba(127,156,249,.22), transparent 70%);
+    animation:aurora 16s ease-in-out infinite alternate;
+  }
+  @keyframes aurora{
+    from{transform:translateX(-4%) rotate(-2deg) scale(1)}
+    to{transform:translateX(4%) rotate(2deg) scale(1.08)}
+  }
+  header .snow{
+    position:absolute; inset:0; pointer-events:none; opacity:.85;
+    background-image:
+      radial-gradient(circle, rgba(255,255,255,.95) 0 1.4px, transparent 2.2px),
+      radial-gradient(circle, rgba(255,255,255,.55) 0 1px, transparent 1.7px);
+    background-size:130px 150px, 80px 100px;
+    background-position:10px 0, 45px 40px;
+    animation:snowfall 11s linear infinite;
+  }
+  @keyframes snowfall{to{background-position:10px 150px, 45px 140px}}
+  header .ice-edge{
+    position:absolute; left:0; right:0; bottom:-1px; width:100%; height:24px; display:block;
+  }
+  .brand{display:flex;align-items:center;gap:12px;position:relative;z-index:2}
+  .brand .mark{
+    width:46px;height:46px;border-radius:15px;flex-shrink:0;
+    background:linear-gradient(165deg,#eaf7ff,#bfe0f5);
+    display:grid;place-items:center;
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.75),0 4px 14px rgba(4,20,38,.4);
+  }
+  .brand .mark svg{animation:bob 3.2s ease-in-out infinite;display:block}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.5px)}}
+  header h1{font-size:21px;font-weight:900;text-shadow:0 1px 8px rgba(4,20,38,.35)}
+  header p{margin:2px 0 0;font-size:12.5px;opacity:.82}
+  .round-pill{
+    position:absolute;top:18px;right:14px;z-index:2;
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);
+    padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    box-shadow:0 2px 10px rgba(4,20,38,.25);
+  }
+
+  main{max-width:760px;margin:0 auto;padding:16px 14px}
+  .tab-body{display:none} .tab-body.on{display:block;animation:fade .3s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* ===== floating frosted nav ===== */
+  nav{
+    position:fixed;bottom:10px;left:50%;transform:translateX(-50%);
+    width:min(440px,calc(100% - 20px));z-index:40;
+    background:rgba(255,255,255,.82);
+    backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4);
+    border:1px solid rgba(255,255,255,.85);
+    border-radius:24px;display:flex;padding:6px;gap:4px;
+    box-shadow:0 12px 34px rgba(13,42,68,.22),0 2px 8px rgba(13,42,68,.08);
+  }
+  nav button{
+    flex:1;padding:9px 4px 10px;display:flex;flex-direction:column;position:relative;
+    align-items:center;gap:3px;color:var(--muted);font-size:11px;font-weight:700;
+    border-radius:18px;transition:background .2s,color .2s;
+  }
+  nav button .ic{line-height:1;display:grid;place-items:center;transition:transform .2s}
+  nav button.on{
+    color:var(--deep);
+    background:linear-gradient(180deg,#e8f5fd,#d2eafa);
+    box-shadow:inset 0 0 0 1px rgba(29,111,165,.14);
+  }
+  nav button.on .ic{transform:translateY(-1px) scale(1.06)}
+  nav .badge{
+    position:absolute;top:4px;left:calc(50% + 6px);background:var(--warn);
+    color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;
+    border-radius:9px;display:grid;place-items:center;padding:0 4px;
+    box-shadow:0 2px 6px rgba(239,99,73,.5);
+  }
+
+  /* ===== generic ===== */
+  .card{background:linear-gradient(180deg,#ffffff,#fbfeff);border:1px solid var(--edge);border-radius:18px;
+    box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
+  .row{display:flex;gap:8px;align-items:center}
+  .between{justify-content:space-between}
+  .wrap{flex-wrap:wrap}
+  .sec-title{display:flex;align-items:center;justify-content:space-between;margin:2px 0 10px}
+  .sec-title h2{font-size:15px;font-weight:800;display:flex;align-items:center;gap:6px}
+  .sec-title .count{font-size:12px;color:var(--muted);font-weight:600;background:rgba(255,255,255,.7);
+    border:1px solid var(--edge);padding:2px 10px;border-radius:999px}
+  .muted{color:var(--muted)}
+  .btn{
+    background:linear-gradient(165deg,var(--glacier-2),var(--glacier) 55%,#175a8a);
+    color:#fff;padding:12px 16px;border-radius:14px;
+    font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:6px;
+    justify-content:center;transition:transform .08s,filter .15s,box-shadow .15s;
+    box-shadow:0 6px 16px rgba(23,90,138,.32),inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  .btn:active{transform:scale(.97);filter:brightness(1.08)}
+  .btn.block{width:100%}
+  .btn.ghost{background:rgba(255,255,255,.75);color:var(--glacier);
+    box-shadow:inset 0 0 0 1.5px var(--edge),0 2px 8px rgba(13,42,68,.06)}
+  .btn.sm{padding:8px 12px;font-size:13px;border-radius:12px}
+  .btn.warn{background:linear-gradient(165deg,#ff8a63,var(--warn) 60%,#dd4e35);
+    box-shadow:0 6px 16px rgba(239,99,73,.35),inset 0 1px 0 rgba(255,255,255,.25)}
+  .btn.mini{padding:5px 11px;font-size:12px;border-radius:10px}
+  .field{margin-bottom:10px}
+  .field label{display:block;font-size:12px;font-weight:700;margin-bottom:4px;color:var(--muted)}
+  .field input,.field textarea,.field select{
+    width:100%;padding:11px 12px;border:1.5px solid var(--edge);border-radius:12px;
+    background:#f7fbfe;outline:none;transition:border-color .15s,box-shadow .15s}
+  .field input:focus,.field textarea:focus,.field select:focus{
+    border-color:var(--glacier);box-shadow:0 0 0 3px rgba(29,111,165,.12)}
+  textarea{resize:vertical;min-height:52px}
+
+  /* ===== skill: fish (penguin currency) ===== */
+  .pips{display:inline-flex;gap:2px;vertical-align:-2px}
+  .pip{color:#cadfec;display:inline-flex}
+  .pip.on{color:var(--beak)}
+  .pipbtns{display:flex;gap:6px}
+  .pipbtns button{width:40px;height:40px;border-radius:12px;border:1.5px solid var(--edge);
+    background:#f7fbfe;font-weight:800;color:var(--muted);transition:all .15s}
+  .pipbtns button.on{background:linear-gradient(165deg,var(--glacier-2),var(--glacier));
+    color:#fff;border-color:transparent;box-shadow:0 4px 10px rgba(29,111,165,.35)}
+
+  /* ===== perks ===== */
+  .perkbar{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+  .perk-tog{padding:6px 12px;border-radius:999px;font-size:12.5px;font-weight:600;
+    border:1.5px solid var(--edge);background:#f7fbfe;color:var(--ink);transition:all .15s}
+  .perk-tog.on{background:linear-gradient(165deg,#ffb35c,var(--beak));border-color:transparent;color:#fff;
+    box-shadow:0 3px 9px rgba(247,155,62,.4)}
+  .tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;
+    background:#e8f4fb;color:var(--deep);border:1px solid #d5e9f5;margin:3px 4px 0 0}
+
+  /* ===== player row ===== */
+  .plist{display:flex;flex-direction:column;gap:9px}
+  .pcard{background:linear-gradient(180deg,#ffffff,#fbfeff);border:1px solid var(--edge);
+    border-radius:16px;padding:11px 12px;
+    display:flex;gap:11px;align-items:flex-start;box-shadow:var(--shadow);
+    transition:transform .15s,box-shadow .15s}
+  @media(hover:hover){.pcard:hover{transform:translateY(-1px);box-shadow:0 4px 8px rgba(13,42,68,.06),0 14px 34px rgba(13,42,68,.12)}}
+  .pcard.dim{opacity:.55}
+  .avatar{width:46px;height:46px;border-radius:15px;flex-shrink:0;display:grid;place-items:center;
+    background:linear-gradient(180deg,#e3f2fc,#c6e3f6);
+    box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.85),0 2px 6px rgba(13,42,68,.08)}
+  .avatar svg{display:block}
+  .avatar.sm{width:34px;height:34px;border-radius:11px}
+  .pcard .body{flex:1;min-width:0}
+  .pname{font-weight:800;font-size:15px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .status-dot{font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px}
+  .s-wait{background:#dff0fa;color:var(--deep)}
+  .s-play{background:#ffedc7;color:#8a5a00}
+  .s-done{background:#e9edf0;color:var(--muted)}
+  .s-rest{background:#f2e8d6;color:var(--rest)}
+  .s-exempt{background:#efe7ff;color:var(--exempt)}
+  .s-out{background:#edf1f4;color:#7b8790}
+  .pmeta{font-size:12.5px;color:var(--muted);margin-top:3px;word-break:break-word;
+    display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .pcomment{font-size:12.5px;color:var(--ink);margin-top:3px;font-style:italic;opacity:.8}
+  .pcard .acts{display:flex;flex-direction:column;gap:5px;align-items:flex-end}
+  .icon-btn{width:31px;height:31px;border-radius:10px;border:1.5px solid var(--edge);
+    background:#f7fbfe;font-size:14px;display:grid;place-items:center;color:var(--deep);
+    transition:background .15s}
+  .icon-btn:active{background:#e4f1fa}
+
+  /* ===== courts ===== */
+  .courts-grid{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:560px){.courts-grid{grid-template-columns:1fr 1fr}}
+  .court-card{border:1px solid var(--edge);border-radius:18px;overflow:hidden;
+    background:var(--card);box-shadow:var(--shadow)}
+  .court-head{
+    background:var(--night);
+    background-image:radial-gradient(120% 160% at 85% -60%, rgba(79,224,189,.25), transparent 60%),
+      linear-gradient(135deg,#164369,#0d2b49);
+    color:var(--line);padding:11px 14px;
+    display:flex;align-items:center;justify-content:space-between;position:relative}
+  .court-head::after{content:"";position:absolute;left:14px;right:14px;bottom:0;height:2px;
+    background:repeating-linear-gradient(90deg,var(--line) 0 6px,transparent 6px 11px);opacity:.5}
+  .court-head h3{font-size:15px}
+  .court-status{font-size:11px;opacity:.9;display:inline-flex;align-items:center;gap:5px;
+    background:rgba(255,255,255,.12);padding:3px 10px;border-radius:999px;
+    border:1px solid rgba(255,255,255,.15)}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--aurora-a);display:inline-block;
+    box-shadow:0 0 6px var(--aurora-a);animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
+  .court-body{padding:13px 14px}
+  .empty-court{text-align:center;padding:8px 4px}
+  .empty-court .art{opacity:.9;margin-bottom:2px}
+  .matchup{display:flex;align-items:stretch;gap:8px}
+  .side{flex:1;background:linear-gradient(180deg,#eaf4fb,#e0eef8);border-radius:13px;padding:10px;
+    border:1px solid #dcebf6}
+  .side h4{font-size:11px;color:var(--muted);margin:0 0 6px;text-transform:uppercase;letter-spacing:.05em}
+  .side .p{font-weight:700;font-size:14px;display:flex;justify-content:space-between;gap:6px;padding:3px 0}
+  .side .p small{color:var(--glacier);font-weight:800}
+  .vs{display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .vs span{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+    background:linear-gradient(165deg,#164369,#0d2b49);color:#fff;
+    font-weight:800;font-size:11px;box-shadow:0 3px 10px rgba(13,42,68,.3)}
+  .sidesum{font-size:11px;color:var(--muted);text-align:center;margin-top:4px}
+
+  /* ===== queue preview ===== */
+  .qstrip{display:flex;gap:8px;overflow-x:auto;padding:2px 0 8px;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none}
+  .qstrip::-webkit-scrollbar{display:none}
+  .qchip{flex-shrink:0;background:rgba(255,255,255,.9);border:1.5px solid var(--edge);border-radius:13px;
+    padding:7px 12px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;
+    box-shadow:0 2px 8px rgba(13,42,68,.06)}
+  .qchip .num{width:19px;height:19px;border-radius:7px;
+    background:linear-gradient(165deg,var(--glacier-2),var(--glacier));color:#fff;
+    font-size:10px;display:grid;place-items:center;font-weight:800}
+  .qchip .games{font-size:10.5px;color:var(--muted);font-weight:700}
+  .qchip.exempt-chip{border-color:#d9c9ff}
+  .qchip.exempt-chip .num{background:linear-gradient(165deg,#a586f9,var(--exempt))}
+
+  /* ===== modal ===== */
+  .scrim{position:fixed;inset:0;background:rgba(6,22,40,.55);z-index:50;display:none;
+    align-items:flex-end;justify-content:center;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+  .scrim.on{display:flex}
+  .sheet{background:linear-gradient(180deg,#ffffff,#f6fbfe);width:100%;max-width:560px;
+    border-radius:26px 26px 0 0;border:1px solid rgba(255,255,255,.8);
+    padding:16px 16px 24px;max-height:90vh;overflow-y:auto;animation:up .3s cubic-bezier(.2,.9,.3,1)}
+  @media(min-width:560px){.sheet{border-radius:26px;margin-bottom:auto;margin-top:auto}
+    .scrim{align-items:center}}
+  @keyframes up{from{transform:translateY(36px);opacity:.5}to{transform:none;opacity:1}}
+  .sheet .grab{width:40px;height:4.5px;border-radius:99px;background:var(--edge);margin:0 auto 13px}
+  .sheet h3{font-size:17px;margin-bottom:12px}
+
+  /* pick list in match modal */
+  .pick{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid #e6f1f8;
+    border-radius:10px;transition:background .12s}
+  .pick:last-child{border-bottom:none}
+  .pick.sel{background:#eef7fd}
+  .pick .cb{width:24px;height:24px;border-radius:8px;border:2px solid var(--edge);flex-shrink:0;
+    display:grid;place-items:center;font-size:14px;color:#fff;transition:all .15s}
+  .pick.sel .cb{background:linear-gradient(165deg,var(--glacier-2),var(--glacier));border-color:var(--glacier)}
+  .pick .nm{flex:1;font-weight:700;font-size:14px}
+  .pick .sk{font-size:12px;color:var(--glacier);font-weight:800}
+
+  .balance-note{background:linear-gradient(180deg,#eaf4fb,#e0eef8);border:1px solid #dcebf6;
+    border-radius:13px;padding:10px 13px;font-size:13px;
+    margin:8px 0;display:flex;align-items:center;justify-content:space-between}
+  .balance-note b{font-size:15px}
+  .swaphint{font-size:12px;color:var(--muted);text-align:center;margin:8px 0}
+
+  .empty-state{text-align:center;padding:28px 16px;color:var(--muted)}
+  .empty-state .art{margin-bottom:4px;opacity:.95}
+  .empty-state .ic{opacity:.35;margin-bottom:6px}
+  .empty-state p{margin:4px 0;font-size:13.5px}
+
+  .hist-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #e6f1f8;font-size:13px}
+  .hist-item:last-child{border-bottom:none}
+  .hist-item .ct{font-weight:800;color:var(--glacier);flex-shrink:0}
+  .toast{position:fixed;bottom:104px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:linear-gradient(165deg,#16395c,var(--night));color:#fff;padding:11px 18px;
+    border-radius:14px;font-size:13px;font-weight:600;border:1px solid rgba(255,255,255,.12);
+    opacity:0;pointer-events:none;transition:.25s;z-index:60;white-space:nowrap;
+    display:flex;align-items:center;gap:7px;box-shadow:0 10px 28px rgba(6,22,40,.4)}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  .danger-link{color:var(--warn);font-size:12px;font-weight:700;background:none;padding:4px}
+  .confirm-hero{display:flex;gap:12px;align-items:center;padding:14px;border-radius:18px;
+    background:linear-gradient(135deg,#eef8fe,#e4f1fb 55%,#dcedfa);border:1px solid #d8e8f2;margin-bottom:12px}
+  .confirm-hero .artbox{width:78px;height:72px;border-radius:18px;flex-shrink:0;display:grid;place-items:center;
+    background:linear-gradient(180deg,#ffffff,#eef7fd);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.95),0 6px 18px rgba(13,42,68,.08)}
+  .confirm-hero .eyebrow{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--glacier);margin-bottom:2px}
+  .confirm-hero p{margin:4px 0 0;font-size:13px;color:var(--muted)}
+  .confirm-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .confirm-stat{padding:11px 12px;border-radius:14px;background:#f7fbfe;border:1px solid var(--edge)}
+  .confirm-stat .lbl{font-size:11px;color:var(--muted);margin-bottom:3px}
+  .confirm-stat b{font-size:17px;color:var(--deep)}
+  .confirm-panel{padding:12px;border-radius:16px;background:linear-gradient(180deg,#ffffff,#fbfeff);border:1px solid var(--edge)}
+  .confirm-panel h4{font-size:13px;margin:0 0 8px;color:var(--deep)}
+  .confirm-points{display:flex;flex-direction:column;gap:8px}
+  .confirm-point{display:flex;gap:9px;align-items:flex-start;padding:9px 10px;border-radius:12px;background:#f7fbfe;border:1px solid #e4eff7;font-size:13px;color:var(--ink)}
+  .confirm-point .dot{width:22px;height:22px;border-radius:9px;flex-shrink:0;display:grid;place-items:center;
+    background:linear-gradient(165deg,#dff2fd,#cfe6f7);color:var(--glacier)}
+  .confirm-actions{display:flex;gap:10px;margin-top:14px}
+  .confirm-actions .btn{flex:1}
+  .confirm-hero.warn{background:linear-gradient(135deg,#fff6f2,#fff0e9 55%,#ffe4da);border-color:#ffd8ca}
+  .confirm-hero.warn .artbox{background:linear-gradient(180deg,#fffdfc,#fff0ea);color:var(--warn)}
+  .confirm-hero.warn .eyebrow{color:var(--warn)}
+  .confirm-panel.warn{background:linear-gradient(180deg,#fffdfc,#fff7f3);border-color:#ffe0d5}
+  .confirm-panel.warn h4{color:#b94b38}
+  .confirm-point.warn{background:#fff7f3;border-color:#ffe2d8}
+  .confirm-point.warn .dot{background:linear-gradient(165deg,#ffe9e1,#ffd9cb);color:var(--warn)}
+  .match-confirm{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:stretch;margin-top:2px}
+  .match-confirm .team{padding:11px;border-radius:13px;background:linear-gradient(180deg,#eef7fd,#e1eff9);border:1px solid #d7e8f4;font-size:13px}
+  .match-confirm .team .side-label{font-size:10.5px;font-weight:800;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:5px}
+  .match-confirm .team .names{font-weight:800;line-height:1.7}
+  .match-confirm .versus{display:grid;place-items:center;font-size:11px;font-weight:900;color:#fff}
+  .match-confirm .versus span{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(165deg,#164369,#0d2b49);box-shadow:0 3px 10px rgba(13,42,68,.22)}
+  @media(max-width:420px){.confirm-stats{grid-template-columns:1fr}.confirm-actions{flex-direction:column}.match-confirm{grid-template-columns:1fr}.match-confirm .versus{height:22px}.match-confirm .versus span{width:28px;height:28px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="aurora"></div>
+  <div class="snow"></div>
+  <div class="brand">
+    <div class="mark" id="brandMark"></div>
+    <div>
+      <h1>คิวแบด</h1>
+      <p>จัดก๊วน · จับคู่คู่ผสมให้ฝีมือสมดุล</p>
+    </div>
+  </div>
+  <div class="round-pill" id="roundPill">รอบที่ 1</div>
+  <svg class="ice-edge" viewBox="0 0 375 24" preserveAspectRatio="none" aria-hidden="true"><path d="M0 24 L0 14 L28 19 L56 8 L92 17 L128 6 L160 15 L196 9 L230 18 L262 7 L300 16 L336 10 L375 15 L375 24 Z" fill="#e7f3fb"/></svg>
+</header>
+
+<main>
+  <!-- ===== TAB: COURTS ===== -->
+  <section class="tab-body on" id="tab-courts">
+    <div class="sec-title">
+      <h2>คิวถัดไป</h2>
+      <span class="count" id="qCount"></span>
+    </div>
+    <div class="qstrip" id="queueStrip"></div>
+
+    <div class="sec-title" style="margin-top:14px">
+      <h2>สนาม</h2>
+      <button class="btn mini ghost" onclick="openCourtSetup()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg> ตั้งค่าสนาม</button>
+    </div>
+    <div class="courts-grid" id="courtsGrid"></div>
+  </section>
+
+  <!-- ===== TAB: SESSION ===== -->
+  <section class="tab-body" id="tab-session">
+    <div class="sec-title">
+      <h2>เซสชันปัจจุบัน</h2>
+      <span class="count" id="sCount"></span>
+    </div>
+    <div class="card">
+      <div class="row between wrap">
+        <div>
+          <div style="font-weight:800">ผู้เล่นที่มาเล่นวันนี้</div>
+          <div class="muted" id="sessionStartedLabel" style="font-size:12px;margin-top:2px"></div>
+        </div>
+        <button class="btn mini ghost" onclick="startNewSession()">↻ เริ่มวันเล่นใหม่</button>
+      </div>
+    </div>
+    <div class="sec-title">
+      <h2>กำลังเข้าร่วม</h2>
+      <span class="count" id="sessionActiveCount"></span>
+    </div>
+    <div class="plist" id="sessionActiveList"></div>
+    <div class="sec-title" style="margin-top:18px">
+      <h2>เพิ่มจากรายชื่อก๊วน</h2>
+    </div>
+    <input id="sessionSearch" placeholder="ค้นหาชื่อผู้เล่น" oninput="renderSession()" style="margin-bottom:10px">
+    <div class="plist" id="sessionRosterList"></div>
+  </section>
+
+  <!-- ===== TAB: PLAYERS ===== -->
+  <section class="tab-body" id="tab-players">
+    <div class="sec-title">
+      <h2>ผู้เล่นในก๊วน</h2>
+      <span class="count" id="pCount"></span>
+    </div>
+    <button class="btn block" onclick="openPlayerForm()" style="margin-bottom:14px">＋ เพิ่มผู้เล่น</button>
+    <div class="plist" id="playerList"></div>
+  </section>
+
+  <!-- ===== TAB: HISTORY ===== -->
+  <section class="tab-body" id="tab-history">
+    <div class="sec-title">
+      <h2>ประวัติการแข่ง</h2>
+      <button class="btn mini ghost" onclick="resetRound()">↻ เริ่มรอบใหม่</button>
+    </div>
+    <div class="card row between">
+      <span style="font-size:13px;display:inline-flex;align-items:center;gap:5px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg> ซิงค์ข้อมูล: <b id="groupCodeLabel">-</b></span>
+      <button class="btn mini ghost" onclick="changeGroupCode()">เปลี่ยนรหัส</button>
+    </div>
+    <div class="card" id="statsCard"></div>
+    <div class="card">
+      <div id="historyList"></div>
+    </div>
+    <button class="danger-link" onclick="wipeAll()" style="display:block;margin:6px auto">ล้างข้อมูลทั้งหมด</button>
+  </section>
+</main>
+
+<nav>
+  <button class="on" data-tab="courts" onclick="switchTab('courts')">
+    <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><line x1="12" y1="5" x2="12" y2="19"/></svg></span>สนาม</button>
+  <button data-tab="session" onclick="switchTab('session')">
+    <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg></span>เซสชัน</button>
+  <button data-tab="players" onclick="switchTab('players')">
+    <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M8 7h8M8 11h6"/></svg></span>รายชื่อ</button>
+  <button data-tab="history" onclick="switchTab('history')">
+    <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg></span>ประวัติ</button>
+</nav>
+
+<!-- ===== MODALS ===== -->
+<div class="scrim" id="scrim">
+  <div class="sheet" id="sheet"><div class="grab"></div><div id="sheetContent"></div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+/* ---------------- error surfacing ---------------- */
+window.addEventListener('error',e=>{
+  const m=(e.error&&e.error.message)||e.message||'unknown';
+  try{
+    const t=document.getElementById('toast');
+    if(t){
+      t.textContent='เกิดข้อผิดพลาด: '+String(m);
+      t.classList.add('on');
+      clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),5000);
+    }
+  }catch(_){}
+});
+
+/* ---------------- icons ---------------- */
+const ICONS = {
+  shuttle:s=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="6" r="2.3" fill="currentColor" stroke="none"/><path d="M12 8.3 7.3 19M12 8.3l-1.8 10.8M12 8.3l1.8 10.8M12 8.3l4.7 10.7"/></svg>`,
+  users:s=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  history:s=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>`,
+  zap:s=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>`,
+  pencil:s=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>`,
+  check:s=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`,
+  play:s=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 3 20 12 6 21 6 3"/></svg>`,
+  pause:s=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></svg>`,
+  warn:s=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`,
+  fish:s=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M2.5 12c0-2.9 3.4-5.3 7.5-5.3s7.5 2.4 7.5 5.3-3.4 5.3-7.5 5.3S2.5 14.9 2.5 12Zm15.5 0 4-3.2v6.4L18 12Z"/><circle cx="6.6" cy="10.8" r="1" fill="#fff"/></svg>`
+};
+function icon(name,size){size=size||16;return (ICONS[name]?ICONS[name](size):'');}
+
+/* ---------------- penguins ---------------- */
+const SCARVES=['#ef6349','#f79b3e','#2fbf9b','#7f9cf9','#e56aa4','#38a8dd'];
+function scarfFor(name){
+  let h=0;for(const c of name)h=(h*31+c.charCodeAt(0))%SCARVES.length;return SCARVES[h];
+}
+function penguinBody(scarf){
+  return `<ellipse cx="9.5" cy="37" rx="5.5" ry="12" fill="#16324e" transform="rotate(16 9.5 37)"/>
+  <ellipse cx="54.5" cy="37" rx="5.5" ry="12" fill="#16324e" transform="rotate(-16 54.5 37)"/>
+  <ellipse cx="32" cy="35" rx="21" ry="24" fill="#16324e"/>
+  <ellipse cx="32" cy="41" rx="13.5" ry="16" fill="#fff"/>
+  <ellipse cx="24" cy="58.5" rx="6" ry="3.2" fill="#f5a04a"/>
+  <ellipse cx="40" cy="58.5" rx="6" ry="3.2" fill="#f5a04a"/>
+  ${scarf?`<path d="M15.5 32.5c5 4 28 4 33 0l-1.8 6.4c-8.2 4.8-21.2 4.8-29.4 0Z" fill="${scarf}"/>
+  <rect x="27.5" y="37.5" width="9" height="13" rx="4" fill="${scarf}"/>`:''}
+  <circle cx="25" cy="24.5" r="4.4" fill="#fff"/><circle cx="39" cy="24.5" r="4.4" fill="#fff"/>
+  <circle cx="26" cy="25.5" r="2.1" fill="#0c1f33"/><circle cx="38" cy="25.5" r="2.1" fill="#0c1f33"/>
+  <circle cx="20.5" cy="29.5" r="2.2" fill="#ff9d9d" opacity=".5"/><circle cx="43.5" cy="29.5" r="2.2" fill="#ff9d9d" opacity=".5"/>
+  <path d="M28.4 29.5 32 34l3.6-4.5Z" fill="#f5a04a"/>`;
+}
+function penguinSVG(scarf,s){
+  return `<svg width="${s}" height="${s}" viewBox="0 0 64 64" aria-hidden="true">${penguinBody(scarf)}</svg>`;
+}
+function penguinArt(s){
+  return `<svg width="${s}" height="${Math.round(s*0.8)}" viewBox="0 0 86 66" aria-hidden="true">
+    <g>${penguinBody('#ef6349')}</g>
+    <g transform="translate(72,48) rotate(20)" stroke="#9db9cc" stroke-width="1.6" stroke-linecap="round" fill="none">
+      <path d="M-3 7-7.5 -7M-1 6.5-2.5 -8M1 6.5 2.5 -8M3 7 7.5 -7"/>
+      <path d="M-7.5 -7Q0 -12 7.5 -7"/>
+      <circle cx="0" cy="9" r="3.8" fill="#f5a04a" stroke="none"/>
+    </g>
+  </svg>`;
+}
+
+/* ---------------- state ---------------- */
+const PERKS = ['เล่นหน้าดี','เล่นหลังดี','ตบหนัก','วางลูกดี','วิ่งไว','เกมรับดี','สมาธิดี'];
+const VALID_STATUSES = new Set(['wait','rest','done']);
+const store = {
+  schemaVersion: 2,
+  players: [],
+  courts: [],
+  matches: [],
+  history: [],
+  round: 1,
+  roundUpdatedAt: 0,
+  session: null,
+  updatedAt: 0,
+  wipedAt: 0,
+  deletedPlayers: {},
+  deletedCourts: {},
+  deletedMatches: {}
+};
+let editingId=null, matchDraft=null;
+let cloudPushTimer=null, dbRef=null, groupCode=null, cloudUser=null;
+let cloudAvailable=false, authObserverAttached=false, connectionToken=0, suppressCloudWrite=false, forceGroupSheet=false, pendingGroupSwitch=null;
+const MATCH_CANDIDATE_WINDOW=8;
+
+/* ---------------- safe values ---------------- */
+function safeText(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function jsArg(value){
+  return JSON.stringify(String(value??'')).replace(/[<>&']/g,c=>({'<':'\\u003c','>':'\\u003e','&':'\\u0026',"'":'\\u0027'}[c]));
+}
+function clampNumber(value,min,max,fallback){
+  const n=Number(value);
+  return Number.isFinite(n)?Math.max(min,Math.min(max,n)):fallback;
+}
+function cleanText(value,fallback='',max=500){
+  const text=String(value??'').trim().slice(0,max);
+  return text||fallback;
+}
+function asRecords(value){
+  return Array.isArray(value)
+    ?value.filter(x=>x&&typeof x==='object')
+    :value&&typeof value==='object'?Object.values(value).filter(x=>x&&typeof x==='object'):[];
+}
+function normalizeTombstones(value){
+  if(!value||typeof value!=='object'||Array.isArray(value))return {};
+  const out={};
+  Object.entries(value).forEach(([id,at])=>{
+    const n=Number(at);
+    if(id&&Number.isFinite(n)&&n>0)out[String(id)]=n;
+  });
+  return out;
+}
+function randomId(prefix){
+  try{
+    if(window.crypto?.randomUUID)return prefix+window.crypto.randomUUID().replace(/-/g,'');
+  }catch(_){}
+  return prefix+Date.now().toString(36)+Math.random().toString(36).slice(2,10);
+}
+function cid(){return randomId('c');}
+function pid(){return randomId('p');}
+function mid(){return randomId('m');}
+function hid(){return randomId('h');}
+function sid(){return randomId('s');}
+function makeCourt(label,at=Date.now()){return {id:cid(),label:cleanText(label,'1',50),updatedAt:at};}
+function newSessionState(){
+  const now=Date.now();
+  return {id:sid(),startedAt:now,seed:Math.random().toString(36).slice(2),updatedAt:now};
+}
+function hashText(text){
+  let h=2166136261;
+  for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}
+  return h>>>0;
+}
+function sessionTieFor(id){return hashText((store.session?.seed||'session')+'|'+id);}
+function uniqueStrings(value){return [...new Set((Array.isArray(value)?value:[]).filter(v=>typeof v==='string'&&v))];}
+function recordTime(record){return Number(record?.updatedAt)||Number(record?.startedAt)||Number(record?.ts)||0;}
+
+/* ---------------- persistence and data repair ---------------- */
+const KEY='courtq_badminton_v1';
+const GROUP_CACHE_PREFIX=KEY+'_group_';
+function groupCacheKey(code){return GROUP_CACHE_PREFIX+encodeGroupCode(code);}
+function save(){
+  try{
+    const data=JSON.stringify(store);
+    localStorage.setItem(KEY,data);
+    if(groupCode)localStorage.setItem(groupCacheKey(groupCode),data);
+  }catch(_){}
+}
+function replaceStore(data){
+  Object.keys(store).forEach(k=>delete store[k]);
+  if(data&&typeof data==='object')Object.assign(store,cloneData(data));
+  normalizeStore();
+}
+function readGroupCache(code){
+  try{
+    const data=JSON.parse(localStorage.getItem(groupCacheKey(code)));
+    return data&&typeof data==='object'?data:null;
+  }catch(_){return null;}
+}
+function normalizeStore(){
+  store.schemaVersion=2;
+  store.deletedPlayers=normalizeTombstones(store.deletedPlayers);
+  store.deletedCourts=normalizeTombstones(store.deletedCourts);
+  store.deletedMatches=normalizeTombstones(store.deletedMatches);
+  store.updatedAt=Number.isFinite(store.updatedAt)?store.updatedAt:0;
+  store.wipedAt=Number.isFinite(store.wipedAt)?store.wipedAt:0;
+  store.round=Math.max(1,Math.floor(Number(store.round)||1));
+  store.roundUpdatedAt=Number.isFinite(store.roundUpdatedAt)?store.roundUpdatedAt:store.updatedAt;
+
+  if(!store.session||typeof store.session!=='object'||!store.session.id)store.session=newSessionState();
+  store.session.id=String(store.session.id);
+  store.session.startedAt=Number.isFinite(store.session.startedAt)?store.session.startedAt:Date.now();
+  if(typeof store.session.seed!=='string'||!store.session.seed)store.session.seed=hashText(store.session.id).toString(36);
+  store.session.updatedAt=Number.isFinite(store.session.updatedAt)?store.session.updatedAt:store.session.startedAt;
+
+  const playerIds=new Set();
+  store.players=asRecords(store.players).map((raw,index)=>{
+    const p={...raw};
+    let id=typeof p.id==='string'&&p.id?String(p.id).slice(0,120):'p_legacy_'+hashText(JSON.stringify(raw)+'|'+index).toString(36);
+    while(playerIds.has(id))id+='_'+index;
+    playerIds.add(id);
+    p.id=id;
+    p.name=cleanText(p.name,'ผู้เล่น',80);
+    p.skill=Math.round(clampNumber(p.skill,1,5,3));
+    p.comment=cleanText(p.comment,'',500);
+    p.perks=uniqueStrings(p.perks).filter(k=>PERKS.includes(k));
+    p.status=VALID_STATUSES.has(p.status)?p.status:'wait';
+    p.exempt=!!p.exempt;
+    p.inSession=typeof p.inSession==='boolean'?p.inSession:false;
+    p.gamesPlayed=Math.max(0,Math.floor(Number(p.gamesPlayed)||0));
+    p.lastPlayedAt=Number.isFinite(p.lastPlayedAt)?p.lastPlayedAt:0;
+    p.sessionGames=Math.max(0,Math.floor(Number(p.sessionGames)||0));
+    p.sessionQueueAt=Number.isFinite(p.sessionQueueAt)?p.sessionQueueAt:0;
+    p.sessionTie=Number.isFinite(p.sessionTie)?p.sessionTie:sessionTieFor(id);
+    p.sessionId=typeof p.sessionId==='string'?p.sessionId:null;
+    p.updatedAt=Number.isFinite(p.updatedAt)?p.updatedAt:0;
+    return p;
+  }).filter(p=>{
+    const deletedAt=Number(store.deletedPlayers[p.id])||0;
+    return (!store.wipedAt||p.updatedAt>store.wipedAt)&&(!deletedAt||p.updatedAt>deletedAt);
+  });
+
+  const courtIds=new Set();
+  store.courts=asRecords(store.courts).map((raw,index)=>{
+    const court={...raw};
+    let id=typeof court.id==='string'&&court.id?String(court.id).slice(0,120):'c_legacy_'+hashText(JSON.stringify(raw)+'|'+index).toString(36);
+    while(courtIds.has(id))id+='_'+index;
+    courtIds.add(id);
+    court.id=id;
+    court.label=cleanText(court.label,String(index+1),50);
+    court.updatedAt=Number.isFinite(court.updatedAt)?court.updatedAt:store.updatedAt;
+    return court;
+  }).filter(c=>{
+    const deletedAt=Number(store.deletedCourts[c.id])||0;
+    return (!store.wipedAt||c.updatedAt>store.wipedAt)&&(!deletedAt||c.updatedAt>deletedAt);
+  });
+
+  const historyIds=new Set();
+  store.history=asRecords(store.history).map((raw,index)=>{
+    const h={...raw};
+    const ts=Number.isFinite(h.ts)?h.ts:0;
+    let id=typeof h.id==='string'&&h.id?String(h.id).slice(0,140):'h_legacy_'+hashText(JSON.stringify(raw)+'|'+index).toString(36);
+    while(historyIds.has(id))id+='_'+index;
+    historyIds.add(id);
+    h.id=id;
+    h.ts=ts;
+    h.updatedAt=Number.isFinite(h.updatedAt)?h.updatedAt:ts;
+    h.courtLabel=cleanText(h.courtLabel,'',50);
+    h.side1=uniqueStrings(h.side1).map(n=>cleanText(n,'ผู้เล่น',80));
+    h.side2=uniqueStrings(h.side2).map(n=>cleanText(n,'ผู้เล่น',80));
+    h.side1Ids=uniqueStrings(h.side1Ids);
+    h.side2Ids=uniqueStrings(h.side2Ids);
+    h.s1=Number.isFinite(h.s1)?h.s1:0;
+    h.s2=Number.isFinite(h.s2)?h.s2:0;
+    return h;
+  }).filter(h=>!store.wipedAt||h.updatedAt>store.wipedAt);
+
+  const playerIdSet=new Set(store.players.map(p=>p.id));
+  const courtIdSet=new Set(store.courts.map(c=>c.id));
+  const matchIds=new Set();
+  const candidates=asRecords(store.matches).map((raw,index)=>{
+    const m={...raw};
+    let id=typeof m.id==='string'&&m.id?String(m.id).slice(0,140):'m_legacy_'+hashText(JSON.stringify(raw)+'|'+index).toString(36);
+    while(matchIds.has(id))id+='_'+index;
+    matchIds.add(id);
+    m.id=id;
+    m.courtId=typeof m.courtId==='string'?m.courtId:'';
+    m.side1=uniqueStrings(m.side1);
+    m.side2=uniqueStrings(m.side2);
+    m.startedAt=Number.isFinite(m.startedAt)?m.startedAt:recordTime(m);
+    m.updatedAt=Number.isFinite(m.updatedAt)?m.updatedAt:m.startedAt;
+    m.sessionId=typeof m.sessionId==='string'?m.sessionId:store.session.id;
+    return m;
+  }).filter(m=>{
+    const deletedAt=Number(store.deletedMatches[m.id])||0;
+    const all=[...m.side1,...m.side2];
+    return (!store.wipedAt||m.updatedAt>store.wipedAt)
+      &&(!deletedAt||m.updatedAt>deletedAt)
+      &&courtIdSet.has(m.courtId)
+      &&m.side1.length===2&&m.side2.length===2&&new Set(all).size===4
+      &&all.every(id=>playerIdSet.has(id));
+  }).sort((a,b)=>(a.startedAt||a.updatedAt)-(b.startedAt||b.updatedAt)||a.id.localeCompare(b.id));
+  const busyCourts=new Set(),busyPlayers=new Set();
+  store.matches=candidates.filter(m=>{
+    const ids=[...m.side1,...m.side2];
+    if(busyCourts.has(m.courtId)||ids.some(id=>busyPlayers.has(id)))return false;
+    busyCourts.add(m.courtId);ids.forEach(id=>busyPlayers.add(id));return true;
+  });
+
+  const activeIds=new Set(store.matches.flatMap(m=>[...m.side1,...m.side2]));
+  store.players.forEach(p=>{
+    if(activeIds.has(p.id)){
+      p.inSession=true;
+      p.sessionId=store.session.id;
+      if(p.status==='rest')p.status='wait';
+    }
+    if(p.inSession&&!p.sessionId)p.sessionId=store.session.id;
+  });
+}
+function touchPlayer(p,at=Date.now()){if(p)p.updatedAt=at;}
+function markStoreChanged(){const now=Date.now();store.updatedAt=now;return now;}
+function cloneData(value){return JSON.parse(JSON.stringify(value));}
+function mergeTombstones(a,b){
+  const out={...normalizeTombstones(a)};
+  Object.entries(normalizeTombstones(b)).forEach(([id,at])=>out[id]=Math.max(out[id]||0,at));
+  return out;
+}
+function mergeRecords(remoteRecords,localRecords,tombstones,wipedAt,prefix='record'){
+  const all=new Map();
+  const take=(record,index)=>{
+    if(!record||typeof record!=='object')return;
+    const fallback=prefix+'_legacy_'+hashText(JSON.stringify(record)+'|'+index).toString(36);
+    const id=typeof record.id==='string'&&record.id?String(record.id):fallback;
+    const candidate={...record,id};
+    const previous=all.get(id);
+    if(!previous||recordTime(candidate)>=recordTime(previous))all.set(id,candidate);
+  };
+  asRecords(remoteRecords).forEach(take);
+  asRecords(localRecords).forEach(take);
+  return [...all.values()].filter(record=>{
+    const updated=recordTime(record);
+    const deleted=Number(tombstones[record.id])||0;
+    return (!wipedAt||updated>wipedAt)&&(!deleted||updated>deleted);
+  });
+}
+function resolveMatchConflicts(matches){
+  const courts=new Set(),players=new Set();
+  return [...matches].sort((a,b)=>(Number(a.startedAt)||recordTime(a))-(Number(b.startedAt)||recordTime(b))||String(a.id).localeCompare(String(b.id))).filter(m=>{
+    const ids=uniqueStrings([...(Array.isArray(m.side1)?m.side1:[]),...(Array.isArray(m.side2)?m.side2:[])]);
+    if(courts.has(m.courtId)||ids.some(id=>players.has(id)))return false;
+    courts.add(m.courtId);ids.forEach(id=>players.add(id));return true;
+  });
+}
+function mergeStores(remote,local){
+  const r=remote&&typeof remote==='object'?remote:{};
+  const l=local&&typeof local==='object'?local:{};
+  const wipedAt=Math.max(Number(r.wipedAt)||0,Number(l.wipedAt)||0);
+  const deletedPlayers=mergeTombstones(r.deletedPlayers,l.deletedPlayers);
+  const deletedCourts=mergeTombstones(r.deletedCourts,l.deletedCourts);
+  const deletedMatches=mergeTombstones(r.deletedMatches,l.deletedMatches);
+  const players=mergeRecords(r.players,l.players,deletedPlayers,wipedAt,'p');
+  const courts=mergeRecords(r.courts,l.courts,deletedCourts,wipedAt,'c');
+  const history=mergeRecords(r.history,l.history,{},wipedAt,'h');
+  const matches=resolveMatchConflicts(mergeRecords(r.matches,l.matches,deletedMatches,wipedAt,'m'));
+  const rs=r.session&&typeof r.session==='object'?r.session:{};
+  const ls=l.session&&typeof l.session==='object'?l.session:{};
+  const remoteSessionTime=recordTime(rs),localSessionTime=recordTime(ls);
+  const remoteSessionWins=remoteSessionTime>=localSessionTime;
+  const session=cloneData(remoteSessionWins?rs:ls);
+  const sessionChanged=String(rs.id||'')!==String(ls.id||'');
+  const roundSource=sessionChanged?(remoteSessionWins?r:l):((Number(r.roundUpdatedAt)||0)>=(Number(l.roundUpdatedAt)||0)?r:l);
+  return {
+    schemaVersion:2,
+    players,courts,matches,history,
+    session,
+    round:Math.max(1,Math.floor(Number(roundSource.round)||1)),
+    roundUpdatedAt:Number(roundSource.roundUpdatedAt)||recordTime(session),
+    updatedAt:Math.max(Number(r.updatedAt)||0,Number(l.updatedAt)||0),
+    wipedAt,deletedPlayers,deletedCourts,deletedMatches
+  };
+}
+function mergeCloudSnapshot(remote){return mergeStores(remote,store);}
+function load(){
+  try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&typeof d==='object')Object.assign(store,d);}catch(_){}
+  normalizeStore();
+  if(!store.courts.length){const now=Date.now();store.courts=[makeCourt('1',now),makeCourt('2',now)];}
+}
+
+/* ---------------- cloud sync (Firebase) ---------------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyC_8FeR-knlgGX9jN5SiPiERUtWD5AWq_E",
+  authDomain: "badminton-app-8917a.firebaseapp.com",
+  databaseURL: "https://badminton-app-8917a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "badminton-app-8917a",
+  storageBucket: "badminton-app-8917a.firebasestorage.app",
+  messagingSenderId: "210220353758",
+  appId: "1:210220353758:web:42421bab81fed20b291a4f"
+};
+const GROUP_KEY='courtq_group_code';
+function normalizedGroupCode(value){return cleanText(value,'',80).normalize('NFC');}
+function legacyEncodeGroupCode(c){return normalizedGroupCode(c).toLowerCase().replace(/[.#$\[\]\/\s]+/g,'_');}
+function encodeGroupCode(c){
+  const value=normalizedGroupCode(c);
+  try{
+    const bytes=new TextEncoder().encode(value);
+    let binary='';bytes.forEach(byte=>binary+=String.fromCharCode(byte));
+    return 'v2_'+btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  }catch(_){
+    return 'v2_'+encodeURIComponent(value).replace(/%/g,'_');
+  }
+}
+function initFirebase(){
+  try{
+    if(!window.firebase||typeof window.firebase.initializeApp!=='function'||typeof window.firebase.auth!=='function'||typeof window.firebase.database!=='function')return false;
+    if(!firebase.apps||!firebase.apps.length)firebase.initializeApp(firebaseConfig);
+    return true;
+  }catch(e){console.warn('Firebase unavailable',e);return false;}
+}
+function initCloudSync(){
+  cloudAvailable=initFirebase();
+  if(!cloudAvailable){toast('ใช้งานแบบออฟไลน์ — ข้อมูลเก็บในเครื่อง');return;}
+  if(!authObserverAttached){
+    authObserverAttached=true;
+    firebase.auth().onAuthStateChanged(user=>{
+      cloudUser=user||null;
+      if(cloudUser&&groupCode)attachGroupRef(groupCode);
+    });
+  }
+  const code=localStorage.getItem(GROUP_KEY);
+  if(!code){promptGroupCode();return;}
+  connectGroup(code);
+}
+function promptGroupCode(){
+  forceGroupSheet=true;
+  openSheet(`<h3>ตั้งรหัสกลุ่ม</h3>
+    <p class="muted" style="font-size:13px;margin-bottom:10px">ใช้รหัสเดียวกันในทุกอุปกรณ์ ข้อมูลจะซิงค์กันอัตโนมัติ ไม่ต้องล็อกอิน</p>
+    <div class="field"><label>รหัสกลุ่ม (เช่น ชื่อก๊วนของคุณ)</label>
+      <input id="groupCodeInput" maxlength="80" placeholder="เช่น ก๊วนบ้านพี่โต้ง"></div>
+    <button class="btn block" onclick="submitGroupCode()">เริ่มใช้งาน</button>`);
+}
+function submitGroupCode(){
+  const input=document.getElementById('groupCodeInput');
+  const value=normalizedGroupCode(input?.value);
+  if(!value){toast('ใส่รหัสกลุ่มก่อนนะ');return;}
+  localStorage.setItem(GROUP_KEY,value);
+  forceGroupSheet=false;closeSheet();connectGroup(value);
+}
+function attachCloudValueHandler(ref,code,token){
+  ref.on('value',snap=>{
+    if(token!==connectionToken||code!==groupCode)return;
+    const remote=snap.val();
+    if(remote){
+      const remoteCanonical=mergeStores(remote,{});
+      const merged=mergeCloudSnapshot(remote);
+      const before=JSON.stringify(merged);
+      suppressCloudWrite=true;
+      replaceStore(merged);
+      render('cloud');
+      suppressCloudWrite=false;
+      const repaired=remote.schemaVersion!==2
+        ||JSON.stringify(merged)!==JSON.stringify(remoteCanonical)
+        ||JSON.stringify(store)!==before;
+      if(repaired)pushToCloud(true);
+    }else if(store.players.length||store.history.length||store.matches.length){
+      markStoreChanged();pushToCloud(true);
+    }
+  },err=>toast('ซิงค์ขัดข้อง: '+err.message));
+}
+async function attachGroupRef(code){
+  if(!cloudAvailable||!cloudUser)return;
+  const token=++connectionToken;
+  if(dbRef){dbRef.off();dbRef=null;}
+  const database=firebase.database();
+  const ref=database.ref('groups/'+encodeGroupCode(code));
+  let existingSnapshot=null;
+  try{
+    const snapshot=await ref.once('value');
+    if(token!==connectionToken||code!==groupCode)return;
+    existingSnapshot=snapshot.val();
+    if(!existingSnapshot){
+      const legacyRef=database.ref('groups/'+legacyEncodeGroupCode(code));
+      const legacySnapshot=await legacyRef.once('value');
+      if(token!==connectionToken||code!==groupCode)return;
+      if(legacySnapshot.val()){
+        existingSnapshot=legacySnapshot.val();
+        await ref.transaction(current=>current||{...existingSnapshot,schemaVersion:2});
+      }
+    }
+  }catch(e){
+    // Continue with the live listener; a transient read error should not disable local use.
+    console.warn('Initial cloud read failed',e);
+  }
+  if(token!==connectionToken||code!==groupCode)return;
+  const pending=pendingGroupSwitch&&pendingGroupSwitch.code===code?pendingGroupSwitch:null;
+  if(pending){
+    // Joining an existing group must not merge or upload the previous group's local data.
+    // If the destination is empty, retaining the current state intentionally creates a renamed copy.
+    if(existingSnapshot&&!pending.fromCache){replaceStore(existingSnapshot);render('cloud');}
+    pendingGroupSwitch=null;
+  }
+  dbRef=ref;
+  attachCloudValueHandler(ref,code,token);
+}
+function connectGroup(code){
+  const value=normalizedGroupCode(code);
+  if(!value){toast('ใส่รหัสกลุ่มก่อนนะ');return;}
+  const switching=groupCode&&groupCode!==value;
+  if(switching){
+    const cached=readGroupCache(value);
+    pendingGroupSwitch={code:value,fromCache:!!cached};
+    if(cached){replaceStore(cached);render('cloud');}
+  }
+  groupCode=value;
+  const label=document.getElementById('groupCodeLabel');if(label)label.textContent=value;
+  if(!cloudAvailable){save();return;}
+  if(cloudUser){attachGroupRef(value);return;}
+  firebase.auth().signInAnonymously().catch(e=>toast('เชื่อมต่อคลาวด์ไม่สำเร็จ: '+e.message));
+}
+function pushToCloud(immediate=false){
+  if(!dbRef||!cloudAvailable||suppressCloudWrite)return;
+  const write=()=>{
+    const outgoing=cloneData(store);
+    const transaction=dbRef.transaction(current=>mergeStores(current||{},outgoing));
+    if(transaction&&typeof transaction.catch==='function')transaction.catch(e=>toast('บันทึกขึ้นคลาวด์ไม่สำเร็จ: '+e.message));
+  };
+  if(immediate){clearTimeout(cloudPushTimer);write();return;}
+  clearTimeout(cloudPushTimer);cloudPushTimer=setTimeout(write,180);
+}
+function changeGroupCode(){
+  openSheet(`<h3>รหัสกลุ่มซิงค์ข้อมูล</h3>
+    <p class="muted" style="font-size:13px">รหัสปัจจุบัน: <b>${safeText(groupCode||'-')}</b></p>
+    <p class="muted" style="font-size:12.5px">พิมพ์รหัสเดียวกันนี้ในทุกอุปกรณ์ที่ต้องการให้เห็นข้อมูลเดียวกัน</p>
+    <div class="field"><label>เปลี่ยนรหัสกลุ่ม</label><input id="groupCodeInput2" maxlength="80" value="${safeText(groupCode||'')}"></div>
+    <button class="btn block" onclick="submitGroupCodeChange()">บันทึกและซิงค์ใหม่</button>`);
+}
+function submitGroupCodeChange(){
+  const input=document.getElementById('groupCodeInput2');
+  const value=normalizedGroupCode(input?.value);
+  if(!value){toast('ใส่รหัสกลุ่มก่อนนะ');return;}
+  localStorage.setItem(GROUP_KEY,value);
+  closeSheet();connectGroup(value);toast('เปลี่ยนรหัสกลุ่มแล้ว กำลังซิงค์...');
+}
+
+/* ---------------- helpers ---------------- */
+const byId=id=>store.players.find(p=>p.id===id);
+function toast(msg){
+  const t=document.getElementById('toast');
+  if(!t)return;
+  t.textContent=String(msg??'');t.classList.add('on');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),1900);
+}
+const playingIds=()=>store.matches.flatMap(m=>[
+  ...(Array.isArray(m?.side1)?m.side1:[]),
+  ...(Array.isArray(m?.side2)?m.side2:[])
+]);
+const gamesOf=p=>Number.isFinite(p?.gamesPlayed)?p.gamesPlayed:0;
+const sessionGamesOf=p=>Number.isFinite(p?.sessionGames)?p.sessionGames:0;
+const sessionQueueOf=p=>Number.isFinite(p?.sessionQueueAt)?p.sessionQueueAt:0;
+const sum=a=>(Array.isArray(a)?a:[]).reduce((t,p)=>t+(Number(p?.skill)||0),0);
+function matchPlayers(match){
+  return {
+    side1:(Array.isArray(match?.side1)?match.side1:[]).map(byId).filter(Boolean),
+    side2:(Array.isArray(match?.side2)?match.side2:[]).map(byId).filter(Boolean)
+  };
+}
+function fairCompare(a,b){
+  return sessionGamesOf(a)-sessionGamesOf(b)
+    || sessionQueueOf(a)-sessionQueueOf(b)
+    || (Number(a.sessionTie)||0)-(Number(b.sessionTie)||0);
+}
+function currentSessionFloor(excludeId=null){
+  const active=store.players.filter(p=>p.id!==excludeId&&p.inSession&&p.status==='wait'&&!p.exempt);
+  return active.length?Math.min(...active.map(sessionGamesOf)):0;
+}
+
+/* Queue priority: fewest games this session, then longest current wait.
+   Players marked done stay eligible as fallback when fewer than four people
+   have not yet played this round. That keeps 5–7 player sessions moving,
+   while fairCompare still prioritizes anyone with fewer session games. */
+function queueList(){
+  const playing=new Set(playingIds());
+  return store.players.filter(p=>p.inSession&&!playing.has(p.id)&&p.status!=='rest')
+    .sort(fairCompare);
+}
+
+/* ---------------- render ---------------- */
+function render(source='local'){
+  normalizeStore();
+  if(source==='local')markStoreChanged();
+  renderQueue();renderCourts();renderSession();renderPlayers();renderHistory();updateBadges();
+  const roundPill=document.getElementById('roundPill');if(roundPill)roundPill.textContent='รอบที่ '+store.round;
+  save();
+  if(!suppressCloudWrite&&source==='local')pushToCloud();
+}
+function updateBadges(){
+  document.querySelectorAll('nav .badge').forEach(b=>b.remove());
+  const waiting=queueList().length;
+  if(waiting){
+    const btn=document.querySelector('nav button[data-tab="session"]');
+    if(!btn)return;
+    const b=document.createElement('span');b.className='badge';b.textContent=waiting;btn.appendChild(b);
+  }
+}
+function renderQueue(){
+  const q=queueList();const strip=document.getElementById('queueStrip');
+  document.getElementById('qCount').textContent=q.length+' คนรอ';
+  if(!q.length){strip.innerHTML='<span class="muted" style="font-size:13px;padding:6px">ยังไม่มีใครในคิว — เพิ่มผู้เล่นจากแท็บเซสชัน</span>';return;}
+  strip.innerHTML=q.map((p,i)=>`<div class="qchip ${p.exempt?'exempt-chip':''}">
+    <span class="num">${i+1}</span>${safeText(p.name)}${p.exempt?icon('zap',12):''}
+    <span style="color:var(--court);font-weight:800">${p.skill}</span>
+    <span class="games">${sessionGamesOf(p)} เกมในเซสชัน</span></div>`).join('');
+}
+function emptyCourtMarkup(c){
+  return `<div class="court-card"><div class="court-head"><h3>สนาม ${safeText(c.label)}</h3>
+    <span class="court-status">ว่าง</span></div>
+    <div class="court-body"><div class="empty-court">
+    <div class="art">${penguinArt(58)}</div>
+    <button class="btn sm block" style="margin-top:8px" onclick='openMatch(${jsArg(c.id)})'>จัดคู่ลงสนาม</button>
+    </div></div></div>`;
+}
+function renderCourts(){
+  const grid=document.getElementById('courtsGrid');
+  grid.innerHTML=store.courts.map(c=>{
+    const m=store.matches.find(x=>x.courtId===c.id);
+    if(!m)return emptyCourtMarkup(c);
+    const {side1:s1,side2:s2}=matchPlayers(m);
+    if(s1.length!==2||s2.length!==2)return emptyCourtMarkup(c);
+    return `<div class="court-card"><div class="court-head"><h3>สนาม ${safeText(c.label)}</h3>
+      <span class="court-status"><span class="live-dot"></span>กำลังเล่น</span></div>
+      <div class="court-body">
+        <div class="matchup">
+          <div class="side"><h4>ฝั่ง A</h4>
+            ${s1.map(p=>`<div class="p">${safeText(p.name)}<small>${p.skill}</small></div>`).join('')}
+            <div class="sidesum">รวม ${sum(s1)}</div></div>
+          <div class="vs"><span>VS</span></div>
+          <div class="side"><h4>ฝั่ง B</h4>
+            ${s2.map(p=>`<div class="p">${safeText(p.name)}<small>${p.skill}</small></div>`).join('')}
+            <div class="sidesum">รวม ${sum(s2)}</div></div>
+        </div>
+        <button class="btn sm block warn" style="margin-top:10px" onclick='endMatch(${jsArg(c.id)})'>จบเกม (บันทึกว่าเล่นแล้ว)</button>
+      </div></div>`;
+  }).join('');
+}
+function sessionStatus(p,playing){
+  if(playing.has(p.id))return ['กำลังเล่น','s-play'];
+  if(p.status==='rest')return ['พัก','s-rest'];
+  if(p.status==='done')return ['เล่นแล้วรอบนี้','s-done'];
+  return ['รอคิว','s-wait'];
+}
+function renderSession(){
+  const active=store.players.filter(p=>p.inSession);
+  document.getElementById('sCount').textContent=active.length+' คน';
+  document.getElementById('sessionActiveCount').textContent=active.length+' คน';
+  const started=new Date(store.session.startedAt);
+  document.getElementById('sessionStartedLabel').textContent=
+    'เริ่ม '+started.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'})
+    +' · '+started.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+
+  const playing=new Set(playingIds());
+  const activeList=document.getElementById('sessionActiveList');
+  const sortedActive=[...active].sort((a,b)=>{
+    const ap=playing.has(a.id)?0:1,bp=playing.has(b.id)?0:1;
+    return ap-bp||fairCompare(a,b);
+  });
+  activeList.innerHTML=sortedActive.length?sortedActive.map(p=>{
+    const [st,cls]=sessionStatus(p,playing);
+    const actionTitle=p.status==='done'?'กลับเข้าคิว':p.status==='rest'?'กลับเข้าคิว':'พัก';
+    const actionIcon=(p.status==='done'||p.status==='rest')?icon('play',14):icon('pause',14);
+    return `<div class="pcard">
+      <div class="avatar">${penguinSVG(scarfFor(p.name),38)}</div>
+      <div class="body">
+        <div class="pname">${safeText(p.name)}<span class="status-dot ${cls}">${st}</span>
+          ${p.exempt?'<span class="status-dot s-exempt">'+icon('zap',11)+' ยกเว้น</span>':''}</div>
+        <div class="pmeta">ฝีมือ ${p.skill}/5 · เซสชัน ${sessionGamesOf(p)} เกม · ทั้งหมด ${gamesOf(p)} เกม</div>
+      </div>
+      <div class="acts">
+        <button class="icon-btn" title="${actionTitle}" onclick='toggleRest(${jsArg(p.id)})'>${actionIcon}</button>
+        <button class="btn mini warn" onclick='removeFromSession(${jsArg(p.id)})'>นำออก</button>
+      </div></div>`;
+  }).join(''):`<div class="empty-state" style="padding:20px">
+    <div class="ic">${icon('users',38)}</div><p>ยังไม่มีผู้เล่นในเซสชัน</p>
+    <p>เลือกผู้เล่นจากรายชื่อก๊วนด้านล่าง</p></div>`;
+
+  const search=(document.getElementById('sessionSearch').value||'').trim().toLocaleLowerCase('th');
+  const available=store.players.filter(p=>!p.inSession&&(!search||p.name.toLocaleLowerCase('th').includes(search)))
+    .sort((a,b)=>a.name.localeCompare(b.name,'th'));
+  const rosterList=document.getElementById('sessionRosterList');
+  rosterList.innerHTML=available.length?available.map(p=>`<div class="pcard">
+    <div class="avatar">${penguinSVG(scarfFor(p.name),38)}</div>
+    <div class="body"><div class="pname">${safeText(p.name)}</div>
+      <div class="pmeta">ฝีมือ ${p.skill}/5 · เล่นทั้งหมด ${gamesOf(p)} เกม</div></div>
+    <button class="btn mini" onclick='addToSession(${jsArg(p.id)})'>＋ เข้าร่วม</button>
+  </div>`).join(''):`<div class="empty-state" style="padding:16px"><p>${search?'ไม่พบผู้เล่น':'ทุกคนอยู่ในเซสชันแล้ว'}</p></div>`;
+}
+function renderPlayers(){
+  const list=document.getElementById('playerList');
+  document.getElementById('pCount').textContent=store.players.length+' คน';
+  if(!store.players.length){
+    list.innerHTML=`<div class="empty-state"><div class="art">${penguinArt(84)}</div>
+      <p>ยังไม่มีผู้เล่น</p><p>กด “เพิ่มผู้เล่น” เพื่อเริ่มจัดก๊วน</p></div>`;return;
+  }
+  const playing=new Set(playingIds());
+  const sorted=[...store.players].sort((a,b)=>a.name.localeCompare(b.name,'th'));
+  list.innerHTML=sorted.map(p=>{
+    let st,cls;
+    if(!p.inSession){st='ยังไม่เข้าร่วมวันนี้';cls='s-out';}
+    else if(playing.has(p.id)){st='กำลังเล่น';cls='s-play';}
+    else if(p.status==='rest'){st='พัก';cls='s-rest';}
+    else if(p.status==='done'){st='เล่นแล้ว';cls='s-done';}
+    else{st='รอคิว';cls='s-wait';}
+    const dim=(p.status==='done'||p.status==='rest')&&!playing.has(p.id);
+    return `<div class="pcard ${dim?'dim':''}">
+      <div class="avatar">${penguinSVG(scarfFor(p.name),38)}</div>
+      <div class="body">
+        <div class="pname">${safeText(p.name)}
+          <span class="status-dot ${cls}">${st}</span>
+          ${p.exempt?'<span class="status-dot s-exempt" style="display:inline-flex;align-items:center;gap:3px">'+icon('zap',11)+' ยกเว้น</span>':''}
+        </div>
+        <div class="pmeta">ฝีมือ <span class="pips">${[1,2,3,4,5].map(n=>`<span class="pip ${n<=p.skill?'on':''}">${icon('fish',14)}</span>`).join('')}</span> (${p.skill}/5) · เล่นทั้งหมด ${gamesOf(p)} เกม</div>
+        ${p.perks.length?`<div>${p.perks.map(k=>`<span class="tag">${safeText(k)}</span>`).join('')}</div>`:''}
+        ${p.comment?`<div class="pcomment">“${safeText(p.comment)}”</div>`:''}
+      </div>
+      <div class="acts">
+        <button class="icon-btn" title="แก้ไข" onclick='openPlayerForm(${jsArg(p.id)})'>${icon('pencil',14)}</button>
+      </div></div>`;
+  }).join('');
+}
+function renderHistory(){
+  const stats=document.getElementById('statsCard');
+  const total=store.players.filter(p=>p.inSession).length;
+  const done=store.players.filter(p=>p.inSession&&p.status==='done').length;
+  const playing=playingIds().length;
+  stats.innerHTML=`<div class="row between"><div><div class="muted" style="font-size:12px">รอบปัจจุบัน</div>
+    <div style="font-size:22px;font-weight:800">รอบที่ ${store.round}</div></div>
+    <div style="text-align:right"><div class="muted" style="font-size:12px">เล่นแล้วรอบนี้ / ในเซสชัน</div>
+    <div style="font-size:22px;font-weight:800">${done}<span class="muted" style="font-size:15px">/${total}</span></div></div></div>
+    ${playing?`<div class="muted" style="font-size:12.5px;margin-top:8px;display:flex;align-items:center;gap:5px">${icon('shuttle',14)} กำลังเล่นอยู่ ${playing} คน</div>`:''}`;
+  const hl=document.getElementById('historyList');
+  if(!store.history.length){hl.innerHTML='<div class="empty-state" style="padding:18px"><div class="ic">'+icon('history',38)+'</div><p>ยังไม่มีประวัติการแข่ง</p></div>';return;}
+  hl.innerHTML=[...store.history].sort((a,b)=>(b.ts||0)-(a.ts||0)).map(h=>{
+    const t=new Date(h.ts||0);const tm=Number.isFinite(t.getTime())?t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0'):'--:--';
+    return `<div class="hist-item"><span class="ct">สนาม ${safeText(h.courtLabel)}</span>
+      <span style="flex:1">${(h.side1||[]).map(safeText).join(' + ')} <b>(${h.s1})</b> <span class="muted">vs</span> ${(h.side2||[]).map(safeText).join(' + ')} <b>(${h.s2})</b></span>
+      <span class="muted">${tm}</span></div>`;
+  }).join('');
+}
+
+/* ---------------- tabs ---------------- */
+function switchTab(t){
+  document.querySelectorAll('.tab-body').forEach(s=>s.classList.remove('on'));
+  document.getElementById('tab-'+t).classList.add('on');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  window.scrollTo(0,0);
+}
+
+/* ---------------- modal ---------------- */
+function openSheet(html){document.getElementById('sheetContent').innerHTML=html;
+  document.getElementById('scrim').classList.add('on');}
+function closeSheet(){document.getElementById('scrim').classList.remove('on');editingId=null;matchDraft=null;}
+document.getElementById('scrim').addEventListener('click',e=>{if(e.target.id==='scrim'&&!forceGroupSheet)closeSheet();});
+
+/* ---------------- player form ---------------- */
+let formPerks=new Set(), formSkill=3;
+function openPlayerForm(id){
+  editingId=id||null;
+  const player=id?byId(id):null;
+  if(id&&!player){toast('ไม่พบผู้เล่นคนนี้ ลองเปิดรายชื่อใหม่อีกครั้ง');return;}
+  formPerks=new Set(Array.isArray(player?.perks)?player.perks:[]);
+  formSkill=Math.round(clampNumber(player?.skill,1,5,3));
+  openSheet(`<h3>${id?'แก้ไขผู้เล่น':'เพิ่มผู้เล่น'}</h3>
+    <div class="field"><label>ชื่อ</label>
+      <input id="fName" maxlength="80" placeholder="เช่น พี่โต้ง" value="${player?safeText(player.name):''}"></div>
+    <div class="field"><label>ระดับฝีมือ (1–5)</label>
+      <div class="pipbtns" id="fSkill">${[1,2,3,4,5].map(n=>`<button onclick="setSkill(${n})" class="${n===formSkill?'on':''}">${n}</button>`).join('')}</div></div>
+    <div class="field"><label>จุดเด่น (เลือกได้หลายอย่าง)</label>
+      <div class="perkbar" id="fPerks">${PERKS.map(k=>`<button class="perk-tog ${formPerks.has(k)?'on':''}" onclick='togglePerk(${jsArg(k)})'>${safeText(k)}</button>`).join('')}</div></div>
+    <div class="field"><label>หมายเหตุ</label>
+      <textarea id="fComment" maxlength="500" placeholder="เช่น เข่าไม่ค่อยดี ขอเล่นหลัง">${player?safeText(player.comment):''}</textarea></div>
+    <button class="btn block" onclick="savePlayer()">${id?'บันทึกการแก้ไข':'เพิ่มเข้าก๊วน'}</button>
+    ${id?`<button class="danger-link" style="display:block;margin:10px auto 0" onclick='deletePlayer(${jsArg(id)})'>ลบผู้เล่นคนนี้</button>`:''}`);
+  setTimeout(()=>document.getElementById('fName')?.focus(),120);
+}
+function setSkill(n){
+  formSkill=Math.round(clampNumber(n,1,5,3));
+  document.querySelectorAll('#fSkill button').forEach((b,i)=>b.classList.toggle('on',i+1===formSkill));
+}
+function togglePerk(k){
+  if(!PERKS.includes(k))return;
+  if(formPerks.has(k))formPerks.delete(k);else formPerks.add(k);
+  document.querySelectorAll('#fPerks button').forEach(b=>b.classList.toggle('on',formPerks.has(b.textContent)));
+}
+function savePlayer(){
+  const name=cleanText(document.getElementById('fName')?.value,'',80);
+  if(!name){toast('ใส่ชื่อก่อนนะ');return;}
+  const comment=cleanText(document.getElementById('fComment')?.value,'',500);
+  const changedAt=Date.now();
+  const wasEditing=Boolean(editingId);
+  if(wasEditing){
+    const player=byId(editingId);
+    if(!player){toast('ไม่พบผู้เล่นคนนี้ ลองเปิดรายชื่อใหม่อีกครั้ง');closeSheet();return;}
+    Object.assign(player,{name,skill:formSkill,comment,perks:[...formPerks].filter(k=>PERKS.includes(k)),updatedAt:changedAt});
+  }else{
+    const id=pid();
+    store.players.push({id,name,skill:formSkill,comment,perks:[...formPerks].filter(k=>PERKS.includes(k)),
+      status:'wait',exempt:false,inSession:false,gamesPlayed:0,lastPlayedAt:0,
+      sessionId:null,sessionGames:0,sessionQueueAt:0,sessionTie:sessionTieFor(id),updatedAt:changedAt});
+  }
+  closeSheet();render();toast(wasEditing?'บันทึกแล้ว':'เพิ่ม '+name+' แล้ว');
+}
+function deletePlayer(id){if(byId(id))openDeletePlayerConfirm(id);}
+function openDeletePlayerConfirm(id){
+  const player=byId(id);if(!player)return;
+  const activeMatch=store.matches.find(m=>[...(Array.isArray(m.side1)?m.side1:[]),...(Array.isArray(m.side2)?m.side2:[])].includes(id));
+  const activeNote=activeMatch
+    ?`<div class="confirm-point warn"><span class="dot">${icon('warn',13)}</span><span><b>${safeText(player.name)}</b> กำลังอยู่ในเกมที่สนาม ${safeText((store.courts.find(c=>c.id===activeMatch.courtId)||{}).label||'นี้')} เกมนั้นจะถูกยกเลิกด้วย</span></div>`
+    :'';
+  openSheet(`<div class="confirm-hero warn">
+      <div class="artbox">${icon('warn',30)}</div>
+      <div>
+        <div class="eyebrow">Remove player</div>
+        <h3 style="margin:0">ลบ ${safeText(player.name)} ออกจากก๊วน?</h3>
+        <p>การลบจะเอาผู้เล่นออกจากรายชื่อก๊วนและเซสชันปัจจุบันทันที</p>
+      </div>
+    </div>
+    <div class="confirm-panel warn">
+      <h4>โปรดตรวจสอบก่อนลบ</h4>
+      <div class="confirm-points">
+        <div class="confirm-point warn"><span class="dot">${icon('users',13)}</span><span>โปรไฟล์ จุดเด่น และสถิติของผู้เล่นคนนี้จะถูกลบจากอุปกรณ์และข้อมูลกลุ่ม</span></div>
+        ${activeNote}
+      </div>
+    </div>
+    <div class="confirm-actions">
+      <button class="btn ghost" onclick='openPlayerForm(${jsArg(id)})'>ยกเลิก</button>
+      <button class="btn warn" onclick='confirmDeletePlayer(${jsArg(id)})'>ลบผู้เล่น</button>
+    </div>`);
+}
+function confirmDeletePlayer(id){
+  const player=byId(id);if(!player){closeSheet();return;}
+  const deletedAt=Date.now();
+  store.deletedPlayers=normalizeTombstones(store.deletedPlayers);
+  store.deletedMatches=normalizeTombstones(store.deletedMatches);
+  store.deletedPlayers[id]=deletedAt;
+  store.matches.filter(m=>[...(Array.isArray(m.side1)?m.side1:[]),...(Array.isArray(m.side2)?m.side2:[])].includes(id))
+    .forEach(m=>{store.deletedMatches[m.id]=deletedAt;});
+  store.matches=store.matches.filter(m=>!((Array.isArray(m.side1)?m.side1:[]).includes(id)||(Array.isArray(m.side2)?m.side2:[]).includes(id)));
+  store.players=store.players.filter(p=>p.id!==id);
+  closeSheet();render();toast('ลบ '+player.name+' แล้ว');
+}
+function addToSession(id){
+  const player=byId(id);if(!player)return;
+  const now=Date.now(),sameSession=player.sessionId===store.session.id;
+  player.inSession=true;player.status='wait';
+  player.sessionGames=sameSession?Math.max(sessionGamesOf(player),currentSessionFloor(player.id)):currentSessionFloor(player.id);
+  player.sessionId=store.session.id;player.sessionQueueAt=now;player.sessionTie=sessionTieFor(player.id);touchPlayer(player,now);
+  render();toast('เพิ่ม '+player.name+' เข้าเซสชันแล้ว');
+}
+function removeFromSession(id){
+  const player=byId(id);if(!player)return;
+  if(playingIds().includes(id)){toast('จบเกมก่อนนำผู้เล่นออกจากเซสชัน');return;}
+  player.inSession=false;player.status='wait';touchPlayer(player);render();toast('นำ '+player.name+' ออกจากเซสชันแล้ว');
+}
+function startNewSession(){
+  if(store.matches.length){toast('จบเกมที่กำลังเล่นก่อนเริ่มวันเล่นใหม่');return;}
+  openStartNewSessionConfirm();
+}
+function openStartNewSessionConfirm(){
+  const activeCount=store.players.filter(p=>p.inSession).length;
+  const queueCount=queueList().length;
+  openSheet(`<div class="confirm-hero">
+      <div class="artbox">${penguinArt(62)}</div>
+      <div>
+        <div class="eyebrow">Reset for today</div>
+        <h3 style="margin:0">เริ่มวันเล่นใหม่</h3>
+        <p>รีเซ็ตคิวและจำนวนเกมสำหรับการเล่นวันนี้ โดยยังเก็บรายชื่อผู้เล่นในเซสชันไว้เหมือนเดิม</p>
+      </div>
+    </div>
+    <div class="confirm-stats">
+      <div class="confirm-stat"><div class="lbl">ผู้เล่นในเซสชัน</div><b>${activeCount} คน</b></div>
+      <div class="confirm-stat"><div class="lbl">กำลังรอคิวตอนนี้</div><b>${queueCount} คน</b></div>
+    </div>
+    <div class="confirm-panel">
+      <h4>สิ่งที่จะเกิดขึ้น</h4>
+      <div class="confirm-points">
+        <div class="confirm-point"><span class="dot">${icon('history',13)}</span><span>รีเซ็ตจำนวนเกม <b>ของวันนี้</b> ของทุกคนกลับเป็น 0</span></div>
+        <div class="confirm-point"><span class="dot">${icon('users',13)}</span><span>ผู้เล่นที่อยู่ในเซสชันจะยังอยู่ครบ และกลับเป็นสถานะ <b>รอคิว</b></span></div>
+        <div class="confirm-point"><span class="dot">${icon('shuttle',13)}</span><span>เริ่มลำดับคิวใหม่อย่างยุติธรรม และตั้ง <b>รอบที่ 1</b> ใหม่</span></div>
+      </div>
+    </div>
+    <div class="confirm-actions">
+      <button class="btn ghost" onclick="closeSheet()">ยกเลิก</button>
+      <button class="btn" onclick="confirmStartNewSession()">ยืนยันเริ่มวันเล่นใหม่</button>
+    </div>`);
+}
+function confirmStartNewSession(){
+  if(store.matches.length){closeSheet();toast('มีเกมกำลังเล่นอยู่ จึงยังเริ่มวันใหม่ไม่ได้');return;}
+  store.session=newSessionState();store.round=1;store.roundUpdatedAt=store.session.updatedAt;
+  const now=store.session.startedAt;
+  store.players.forEach(player=>{
+    if(!player.inSession)return;
+    player.sessionId=store.session.id;player.sessionGames=0;player.sessionQueueAt=now;
+    player.sessionTie=sessionTieFor(player.id);player.status='wait';touchPlayer(player,now);
+  });
+  closeSheet();render();toast('เริ่มวันเล่นใหม่แล้ว');
+}
+function toggleRest(id){
+  const player=byId(id);if(!player)return;
+  if(!player.inSession){addToSession(id);return;}
+  if(playingIds().includes(id)){toast('คนนี้กำลังเล่นอยู่');return;}
+  const changedAt=Date.now();
+  if(player.status==='done'){
+    player.status='wait';player.sessionQueueAt=changedAt;touchPlayer(player,changedAt);
+    render();toast(player.name+' กลับเข้าคิวแล้ว');return;
+  }
+  if(player.status==='rest'){
+    player.status='wait';
+    player.sessionGames=Math.max(sessionGamesOf(player),currentSessionFloor(player.id));
+    player.sessionQueueAt=changedAt;
+  }else player.status='rest';
+  touchPlayer(player,changedAt);render();
+  toast(player.status==='rest'?player.name+' พักแล้ว':player.name+' กลับมาเล่น');
+}
+
+/* ---------------- exempt toggle (from match modal) ---------------- */
+function toggleExempt(id){
+  const player=byId(id);if(!player)return;
+  if(playingIds().includes(id)){toast('เปลี่ยนกติกาของผู้เล่นระหว่างเกมไม่ได้');return;}
+  player.exempt=!player.exempt;touchPlayer(player);
+  render();
+  if(matchDraft)openMatchDraft();
+  toast(player.exempt?player.name+' → ยกเว้นกติกา':player.name+' → ตามกติกาปกติ');
+}
+
+/* ---------------- match building ---------------- */
+function pairKey(a,b){return a<b?a+'|'+b:b+'|'+a;}
+function repeatPenalty(a,b){
+  if(!Array.isArray(a)||!Array.isArray(b)||a.length!==2||b.length!==2)return 0;
+  const partners=new Set([pairKey(a[0].id,a[1].id),pairKey(b[0].id,b[1].id)]);
+  const opponents=new Set(a.flatMap(x=>b.map(y=>pairKey(x.id,y.id))));
+  let penalty=0;
+  [...store.history].slice(-12).reverse().forEach((h,age)=>{
+    if(!Array.isArray(h.side1Ids)||!Array.isArray(h.side2Ids)||h.side1Ids.length!==2||h.side2Ids.length!==2)return;
+    const weight=Math.max(1,4-Math.floor(age/3));
+    const oldPartners=[pairKey(h.side1Ids[0],h.side1Ids[1]),pairKey(h.side2Ids[0],h.side2Ids[1])];
+    const oldOpponents=h.side1Ids.flatMap(x=>h.side2Ids.map(y=>pairKey(x,y)));
+    oldPartners.forEach(k=>{if(partners.has(k))penalty+=3*weight;});
+    oldOpponents.forEach(k=>{if(opponents.has(k))penalty+=weight;});
+  });
+  return penalty;
+}
+function bestSplit(four){
+  if(!Array.isArray(four)||four.length!==4||four.some(p=>!p))return null;
+  const [p,q,r,s]=four;
+  const opts=[{a:[p,q],b:[r,s]},{a:[p,r],b:[q,s]},{a:[p,s],b:[q,r]}]
+    .map(o=>({...o,diff:Math.abs(sum(o.a)-sum(o.b)),repeat:repeatPenalty(o.a,o.b)}));
+  opts.sort((x,y)=>x.diff-y.diff||x.repeat-y.repeat);return opts[0];
+}
+function combinations(items,k,start=0,picked=[],out=[]){
+  if(picked.length===k){out.push([...picked]);return out;}
+  for(let i=start;i<=items.length-(k-picked.length);i++){
+    picked.push(items[i]);combinations(items,k,i+1,picked,out);picked.pop();
+  }
+  return out;
+}
+function autoMatchPlan(q){
+  const regular=q.filter(p=>!p.exempt).sort(fairCompare);
+  const exempt=q.filter(p=>p.exempt).sort(fairCompare);
+  let pool,mandatory;
+  if(regular.length>=4){
+    const cutoff=sessionGamesOf(regular[3]);
+    mandatory=regular.filter(p=>sessionGamesOf(p)<cutoff);
+    const tied=regular.filter(p=>sessionGamesOf(p)===cutoff);
+    const openSlots=Math.max(4-mandatory.length,MATCH_CANDIDATE_WINDOW-mandatory.length);
+    pool=[...mandatory,...tied.slice(0,openSlots)];
+  }else{
+    mandatory=[...regular];
+    const exemptSlots=Math.max(4-regular.length,MATCH_CANDIDATE_WINDOW-regular.length);
+    pool=[...regular,...exempt.slice(0,exemptSlots)];
+  }
+  const required=new Set(mandatory.map(p=>p.id));
+  const rank=new Map(pool.map((p,i)=>[p.id,i]));
+  const options=combinations(pool,4)
+    .filter(four=>[...required].every(id=>four.some(p=>p.id===id)))
+    .map(four=>{
+      const split=bestSplit(four);if(!split)return null;
+      const waitCost=four.reduce((t,p)=>t+(rank.get(p.id)||0),0);
+      return {four,split,waitCost,score:waitCost*3+split.diff*8+Math.min(split.repeat,6)};
+    }).filter(Boolean)
+    .sort((a,b)=>a.score-b.score||a.split.diff-b.split.diff||a.waitCost-b.waitCost||a.split.repeat-b.split.repeat);
+  return options[0]||null;
+}
+function openMatch(courtId){
+  const court=store.courts.find(c=>c.id===courtId);
+  if(!court){toast('ไม่พบสนามนี้');return;}
+  if(store.matches.some(m=>m.courtId===courtId)){toast('สนามนี้มีเกมกำลังเล่นอยู่แล้ว');return;}
+  const q=queueList();
+  if(q.length<4){toast('ต้องมีผู้เล่นในคิวอย่างน้อย 4 คน');return;}
+  const plan=autoMatchPlan(q);
+  if(!plan){toast('ยังจัดผู้เล่นลงสนามไม่ได้');return;}
+  matchDraft={courtId,courtLabel:court.label,selected:plan.four.map(p=>p.id)};
+  openMatchDraft();
+}
+function openMatchDraft(){
+  if(!matchDraft){closeSheet();return;}
+  const court=store.courts.find(c=>c.id===matchDraft.courtId);
+  if(!court||store.matches.some(m=>m.courtId===matchDraft.courtId)){closeSheet();toast('สนามนี้ไม่พร้อมจัดคู่แล้ว');return;}
+  const q=queueList();
+  const eligible=new Set(q.map(p=>p.id));
+  matchDraft.selected=uniqueStrings(matchDraft.selected).filter(id=>eligible.has(id)).slice(0,4);
+  matchDraft.courtLabel=court.label;
+  const selected=matchDraft.selected;
+  const chosen=selected.map(byId).filter(Boolean);
+  let preview='';
+  if(chosen.length===4){
+    const split=bestSplit(chosen);
+    if(split){
+      matchDraft.split=split;
+      preview=`<div class="balance-note"><span>ฝั่ง A <b>${sum(split.a)}</b> · ${split.a.map(p=>safeText(p.name)).join(', ')}</span></div>
+        <div class="balance-note"><span>ฝั่ง B <b>${sum(split.b)}</b> · ${split.b.map(p=>safeText(p.name)).join(', ')}</span></div>
+        <div class="swaphint">ต่างกัน ${split.diff} แต้ม · คัดจากผู้รอสูงสุด ${MATCH_CANDIDATE_WINDOW} คนตามจำนวนเกมและเวลารอ</div>`;
+    }
+  }else{
+    matchDraft.split=null;
+    preview=`<div class="swaphint">เลือกผู้เล่นให้ครบ 4 คน (ตอนนี้ ${selected.length}/4)</div>`;
+  }
+  openSheet(`<h3>จัดคู่ลงสนาม ${safeText(court.label)}</h3>
+    ${preview}
+    <div style="max-height:46vh;overflow-y:auto;margin:6px 0">
+    ${q.map(player=>{
+      const on=selected.includes(player.id);
+      return `<div class="pick ${on?'sel':''}" onclick='togglePick(${jsArg(player.id)})'>
+        <div class="cb">${on?icon('check',13):''}</div>
+        <div class="avatar sm">${penguinSVG(scarfFor(player.name),26)}</div>
+        <div class="nm">${safeText(player.name)}
+          ${player.exempt?'<span class="status-dot s-exempt" style="margin-left:4px">'+icon('zap',11)+'</span>':''}
+        </div>
+        <span class="sk">${player.skill} · ${sessionGamesOf(player)} เกม</span>
+        <button class="icon-btn" style="margin-left:6px" onclick='event.stopPropagation();toggleExempt(${jsArg(player.id)})' title="ยกเว้นกติกาเวียนคิว">${icon('zap',14)}</button>
+      </div>`;
+    }).join('')}
+    </div>
+    <button class="btn block" onclick="confirmMatch()" ${selected.length!==4?'style="opacity:.5;pointer-events:none"':''}>เริ่มเกม →</button>`);
+}
+function togglePick(id){
+  if(!matchDraft)return;
+  const eligible=new Set(queueList().map(p=>p.id));
+  if(!eligible.has(id)){toast('ผู้เล่นคนนี้ไม่อยู่ในคิวแล้ว');openMatchDraft();return;}
+  const selected=matchDraft.selected;const index=selected.indexOf(id);
+  if(index>=0)selected.splice(index,1);
+  else{if(selected.length>=4){toast('เลือกได้แค่ 4 คน — เอาออกก่อน');return;}selected.push(id);}
+  openMatchDraft();
+}
+function confirmMatch(){
+  const draft=matchDraft;
+  if(!draft)return;
+  const court=store.courts.find(c=>c.id===draft.courtId);
+  if(!court||store.matches.some(m=>m.courtId===draft.courtId)){toast('สนามนี้ไม่พร้อมจัดคู่แล้ว');closeSheet();return;}
+  const eligible=new Set(queueList().map(p=>p.id));
+  const selected=uniqueStrings(draft.selected);
+  if(selected.length!==4||selected.some(id=>!eligible.has(id))){toast('รายชื่อผู้เล่นเปลี่ยนแล้ว เลือกใหม่อีกครั้ง');openMatchDraft();return;}
+  const split=bestSplit(selected.map(byId));
+  if(!split){toast('จัดทีมไม่สำเร็จ ลองเลือกใหม่');return;}
+  const now=Date.now();
+  store.matches.push({id:mid(),courtId:court.id,side1:split.a.map(p=>p.id),side2:split.b.map(p=>p.id),sessionId:store.session.id,startedAt:now,updatedAt:now});
+  closeSheet();render();toast('เริ่มเกมสนาม '+court.label);
+}
+function endMatch(courtId){confirmEndMatch(courtId);}
+function openEndMatchConfirm(courtId){
+  const match=store.matches.find(m=>m.courtId===courtId);if(!match)return;
+  const court=store.courts.find(c=>c.id===courtId);
+  const {side1,side2}=matchPlayers(match);
+  openSheet(`<div class="confirm-hero">
+      <div class="artbox">${penguinArt(62)}</div>
+      <div><div class="eyebrow">Complete match</div><h3 style="margin:0">จบเกมสนาม ${safeText(court?.label||'')}</h3>
+        <p>ยืนยันว่าทั้ง 4 คนเล่นจบแล้ว เพื่ออัปเดตคิวและประวัติการเล่น</p></div>
+    </div>
+    <div class="confirm-stats"><div class="confirm-stat"><div class="lbl">ผู้เล่นในเกมนี้</div><b>${side1.length+side2.length} คน</b></div>
+      <div class="confirm-stat"><div class="lbl">รอบปัจจุบัน</div><b>รอบที่ ${store.round}</b></div></div>
+    <div class="confirm-panel"><h4>คู่ที่กำลังเล่น</h4><div class="match-confirm">
+      <div class="team"><div class="side-label">ฝั่ง A · รวม ${sum(side1)}</div><div class="names">${side1.map(p=>safeText(p.name)).join('<br>')}</div></div>
+      <div class="versus"><span>VS</span></div><div class="team"><div class="side-label">ฝั่ง B · รวม ${sum(side2)}</div><div class="names">${side2.map(p=>safeText(p.name)).join('<br>')}</div></div>
+    </div></div><div class="confirm-actions"><button class="btn ghost" onclick="closeSheet()">ยังไม่จบ</button>
+      <button class="btn warn" onclick='confirmEndMatch(${jsArg(courtId)})'>ยืนยันจบเกม</button></div>`);
+}
+function confirmEndMatch(courtId){
+  const match=store.matches.find(m=>m.courtId===courtId);if(!match){closeSheet();return;}
+  const court=store.courts.find(c=>c.id===courtId);
+  const {side1,side2}=matchPlayers(match);
+  const endedAt=Date.now();
+  store.deletedMatches=normalizeTombstones(store.deletedMatches);
+  store.deletedMatches[match.id]=endedAt;
+  if(side1.length===2&&side2.length===2){
+    const historyId='h_'+match.id;
+    if(!store.history.some(h=>h.id===historyId)){
+      store.history.push({id:historyId,ts:endedAt,updatedAt:endedAt,courtLabel:court?.label||'',
+        side1:side1.map(p=>p.name),side2:side2.map(p=>p.name),
+        side1Ids:[...match.side1],side2Ids:[...match.side2],s1:sum(side1),s2:sum(side2)});
+    }
+    [...match.side1,...match.side2].forEach(id=>{
+      const player=byId(id);if(!player)return;
+      player.gamesPlayed=gamesOf(player)+1;player.lastPlayedAt=endedAt;
+      player.sessionGames=sessionGamesOf(player)+1;player.sessionQueueAt=endedAt;
+      if(!player.exempt)player.status='done';touchPlayer(player,endedAt);
+    });
+  }
+  store.matches=store.matches.filter(m=>m.id!==match.id);
+  const advanced=autoRound();
+  closeSheet();render();
+  toast(advanced?'ทุกคนได้เล่นครบ → เริ่มรอบที่ '+store.round:'บันทึกผลสนาม '+(court?.label||'')+' แล้ว');
+}
+function autoRound(){
+  const eligible=store.players.filter(p=>p.inSession&&p.status!=='rest'&&!p.exempt);
+  if(eligible.length>0&&eligible.every(p=>p.status==='done')){
+    const changedAt=Date.now();
+    eligible.forEach(player=>{player.status='wait';player.sessionQueueAt=changedAt;touchPlayer(player,changedAt);});
+    store.round++;store.roundUpdatedAt=changedAt;return true;
+  }
+  return false;
+}
+function resetRound(){
+  const changedAt=Date.now();
+  store.players.forEach(player=>{if(player.inSession&&player.status==='done'){player.status='wait';player.sessionQueueAt=changedAt;touchPlayer(player,changedAt);}});
+  store.round++;store.roundUpdatedAt=changedAt;render();toast('เริ่มรอบใหม่ — ทุกคนกลับเข้าคิว');
+}
+
+/* ---------------- court setup ---------------- */
+function openCourtSetup(){
+  openSheet(`<h3>ตั้งค่าสนาม</h3>
+    <div class="field"><label>จำนวนสนาม</label>
+      <div class="row"><button class="icon-btn" style="width:44px;height:44px;font-size:20px" onclick="stepCourts(-1)">−</button>
+      <input id="courtNum" type="number" value="${store.courts.length}" min="1" max="12" style="text-align:center;font-size:18px;font-weight:800" oninput="renderLabelInputs()">
+      <button class="icon-btn" style="width:44px;height:44px;font-size:20px" onclick="stepCourts(1)">＋</button></div></div>
+    <div class="field"><label>ชื่อสนาม (แก้ไขได้)</label><div id="labelInputs"></div></div>
+    <button class="btn block" onclick="saveCourts()">บันทึกสนาม</button>`);
+  renderLabelInputs();
+}
+function stepCourts(delta){
+  const input=document.getElementById('courtNum');
+  if(!input)return;
+  input.value=Math.max(1,Math.min(12,(parseInt(input.value,10)||1)+delta));
+  renderLabelInputs();
+}
+function renderLabelInputs(){
+  const numberInput=document.getElementById('courtNum');
+  const box=document.getElementById('labelInputs');
+  if(!numberInput||!box)return;
+  const count=Math.max(1,Math.min(12,parseInt(numberInput.value,10)||1));
+  let html='';
+  for(let index=0;index<count;index++){
+    const current=store.courts[index]?.label||(index+1).toString();
+    html+=`<input class="courtLabel" maxlength="50" style="margin-bottom:6px;padding:9px 12px;border:1.5px solid var(--edge);border-radius:10px;width:100%" value="${safeText(current)}" placeholder="สนาม ${index+1}">`;
+  }
+  box.innerHTML=html;
+}
+function saveCourts(){
+  const labels=[...document.querySelectorAll('.courtLabel')].map((element,index)=>cleanText(element.value,String(index+1),50));
+  const remainingIds=new Set(store.courts.slice(0,labels.length).map(c=>c.id));
+  const affectedMatches=store.matches.filter(match=>!remainingIds.has(match.courtId));
+  if(affectedMatches.length){
+    const affectedLabels=affectedMatches.map(match=>store.courts.find(c=>c.id===match.courtId)?.label||'').filter(Boolean).join(', ');
+    toast('ต้องจบเกมที่สนาม '+affectedLabels+' ก่อนลดจำนวนสนาม');
+    return;
+  }
+  const changedAt=Date.now();
+  store.deletedCourts=normalizeTombstones(store.deletedCourts);
+  store.courts.slice(labels.length).forEach(court=>{store.deletedCourts[court.id]=changedAt;});
+  store.courts=labels.map((label,index)=>{
+    const current=store.courts[index];
+    return current?{...current,label,updatedAt:current.label===label?current.updatedAt:changedAt}:makeCourt(label,changedAt);
+  });
+  closeSheet();render();toast('บันทึกสนามแล้ว');
+}
+
+/* ---------------- danger ---------------- */
+function wipeAll(){openWipeAllConfirm();}
+function openWipeAllConfirm(){
+  const playerCount=store.players.length;
+  const matchCount=store.history.length;
+  openSheet(`<div class="confirm-hero warn">
+      <div class="artbox">${icon('warn',30)}</div>
+      <div>
+        <div class="eyebrow">Permanent reset</div>
+        <h3 style="margin:0">ล้างข้อมูลทั้งหมด?</h3>
+        <p>เริ่มก๊วนใหม่จากศูนย์ ข้อมูลที่ล้างแล้วจะไม่สามารถกู้กลับในแอปได้</p>
+      </div>
+    </div>
+    <div class="confirm-stats">
+      <div class="confirm-stat"><div class="lbl">รายชื่อผู้เล่น</div><b>${playerCount} คน</b></div>
+      <div class="confirm-stat"><div class="lbl">ประวัติการแข่งขัน</div><b>${matchCount} เกม</b></div>
+    </div>
+    <div class="confirm-panel warn">
+      <h4>ข้อมูลที่จะถูกล้าง</h4>
+      <div class="confirm-points">
+        <div class="confirm-point warn"><span class="dot">${icon('users',13)}</span><span>รายชื่อผู้เล่น ระดับฝีมือ จุดเด่น และหมายเหตุ</span></div>
+        <div class="confirm-point warn"><span class="dot">${icon('history',13)}</span><span>ประวัติการแข่งขัน คิว และสถิติทั้งหมด</span></div>
+        <div class="confirm-point warn"><span class="dot">${icon('shuttle',13)}</span><span>สนามจะถูกตั้งกลับเป็นสนาม 1 และสนาม 2</span></div>
+      </div>
+    </div>
+    <div class="confirm-actions">
+      <button class="btn ghost" onclick="closeSheet()">ยกเลิก</button>
+      <button class="btn warn" onclick="confirmWipeAll()">ล้างข้อมูลทั้งหมด</button>
+    </div>`);
+}
+function confirmWipeAll(){
+  const wipedAt=Date.now();
+  localStorage.removeItem(KEY);
+  store.players=[];
+  store.courts=[makeCourt('1',wipedAt),makeCourt('2',wipedAt)];
+  store.matches=[];store.history=[];
+  store.round=1;store.roundUpdatedAt=wipedAt;
+  store.session={...newSessionState(),startedAt:wipedAt,updatedAt:wipedAt};
+  store.deletedPlayers={};store.deletedCourts={};store.deletedMatches={};
+  store.wipedAt=wipedAt;store.updatedAt=wipedAt;
+  closeSheet();render();switchTab('courts');toast('ล้างข้อมูลแล้ว');
+}
+
+/* ---------------- init ---------------- */
+document.getElementById('brandMark').innerHTML=penguinSVG('#ef6349',34);
+load();render('init');initCloudSync();
+</script>
+</body>
+</html>
