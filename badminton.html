@@ -528,7 +528,7 @@ function penguinArt(s){
 const PERKS = ['เล่นหน้าดี','เล่นหลังดี','ตบหนัก','วางลูกดี','วิ่งไว','เกมรับดี','สมาธิดี'];
 const VALID_STATUSES = new Set(['wait','rest','done']);
 const store = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   players: [],
   courts: [],
   matches: [],
@@ -622,7 +622,7 @@ function readGroupCache(code){
   }catch(_){return null;}
 }
 function normalizeStore(){
-  store.schemaVersion=2;
+  store.schemaVersion=3;
   store.deletedPlayers=normalizeTombstones(store.deletedPlayers);
   store.deletedCourts=normalizeTombstones(store.deletedCourts);
   store.deletedMatches=normalizeTombstones(store.deletedMatches);
@@ -658,11 +658,16 @@ function normalizeStore(){
     p.sessionTie=Number.isFinite(p.sessionTie)?p.sessionTie:sessionTieFor(id);
     p.sessionId=typeof p.sessionId==='string'?p.sessionId:null;
     p.updatedAt=Number.isFinite(p.updatedAt)?p.updatedAt:0;
+    // Permanent partner relationship + live lock for future matches.
+    p.partnerId=typeof p.partnerId==='string'&&p.partnerId?String(p.partnerId).slice(0,120):null;
+    p.partnerLocked=!!p.partnerLocked;
+    p.partnerUpdatedAt=Number.isFinite(p.partnerUpdatedAt)?p.partnerUpdatedAt:p.updatedAt;
     return p;
   }).filter(p=>{
     const deletedAt=Number(store.deletedPlayers[p.id])||0;
     return (!store.wipedAt||p.updatedAt>store.wipedAt)&&(!deletedAt||p.updatedAt>deletedAt);
   });
+  repairPartnerLinks();
 
   const courtIds=new Set();
   store.courts=asRecords(store.courts).map((raw,index)=>{
@@ -794,7 +799,7 @@ function mergeStores(remote,local){
   const sessionChanged=String(rs.id||'')!==String(ls.id||'');
   const roundSource=sessionChanged?(remoteSessionWins?r:l):((Number(r.roundUpdatedAt)||0)>=(Number(l.roundUpdatedAt)||0)?r:l);
   return {
-    schemaVersion:2,
+    schemaVersion:3,
     players,courts,matches,history,
     session,
     round:Math.max(1,Math.floor(Number(roundSource.round)||1)),
@@ -881,7 +886,7 @@ function attachCloudValueHandler(ref,code,token){
       replaceStore(merged);
       render('cloud');
       suppressCloudWrite=false;
-      const repaired=remote.schemaVersion!==2
+      const repaired=remote.schemaVersion!==3
         ||JSON.stringify(merged)!==JSON.stringify(remoteCanonical)
         ||JSON.stringify(store)!==before;
       if(repaired)pushToCloud(true);
@@ -907,7 +912,7 @@ async function attachGroupRef(code){
       if(token!==connectionToken||code!==groupCode)return;
       if(legacySnapshot.val()){
         existingSnapshot=legacySnapshot.val();
-        await ref.transaction(current=>current||{...existingSnapshot,schemaVersion:2});
+        await ref.transaction(current=>current||{...existingSnapshot,schemaVersion:3});
       }
     }
   }catch(e){
@@ -992,19 +997,180 @@ function fairCompare(a,b){
     || sessionQueueOf(a)-sessionQueueOf(b)
     || (Number(a.sessionTie)||0)-(Number(b.sessionTie)||0);
 }
-function currentSessionFloor(excludeId=null){
-  const active=store.players.filter(p=>p.id!==excludeId&&p.inSession&&p.status==='wait'&&!p.exempt);
+function partnerTime(player){return Number(player?.partnerUpdatedAt)||Number(player?.updatedAt)||0;}
+function partnerOf(player){
+  if(!player||!player.partnerId)return null;
+  const partner=byId(player.partnerId);
+  return partner&&partner.partnerId===player.id?partner:null;
+}
+function isPartnerLocked(player){
+  const partner=partnerOf(player);
+  return !!(partner&&player.partnerLocked&&partner.partnerLocked);
+}
+function partnerUnit(player,eligibleIds=null){
+  const partner=isPartnerLocked(player)?partnerOf(player):null;
+  if(partner&&(!eligibleIds||eligibleIds.has(partner.id)))return [player,partner];
+  return player?[player]:[];
+}
+function playerIsPriorityExempt(player){
+  const partner=isPartnerLocked(player)?partnerOf(player):null;
+  return !!(player?.exempt||partner?.exempt);
+}
+function partnerMeta(player,interactive=false){
+  const partner=partnerOf(player);
+  if(!partner)return '';
+  const locked=isPartnerLocked(player);
+  const button=interactive
+    ?`<button class="btn mini ghost" style="padding:3px 8px;margin-left:2px" onclick='togglePartnerLock(${jsArg(player.id)})'>${locked?'แยกคู่':'เล่นคู่กัน'}</button>`
+    :`<span class="status-dot ${locked?'s-wait':'s-out'}" style="margin-left:2px">${locked?'เล่นคู่กัน':'แยกคู่'}</span>`;
+  return `<div class="pmeta" style="gap:5px">คู่ประจำ: <b>${safeText(partner.name)}</b>${button}</div>`;
+}
+function currentSessionFloor(excludeIds=null){
+  const excluded=new Set(Array.isArray(excludeIds)?excludeIds:(excludeIds?[excludeIds]:[]));
+  const active=store.players.filter(p=>!excluded.has(p.id)&&p.inSession&&p.status==='wait'&&!playerIsPriorityExempt(p));
   return active.length?Math.min(...active.map(sessionGamesOf)):0;
 }
-
-/* Queue priority: fewest games this session, then longest current wait.
-   Players marked done stay eligible as fallback when fewer than four people
-   have not yet played this round. That keeps 5–7 player sessions moving,
-   while fairCompare still prioritizes anyone with fewer session games. */
-function queueList(){
+function repairPartnerLinks(){
+  const players=Array.isArray(store.players)?store.players:[];
+  const index=new Map(players.map(p=>[p.id,p]));
+  players.forEach(p=>{
+    if(!p.partnerId||p.partnerId===p.id||!index.has(p.partnerId)){
+      p.partnerId=null;p.partnerLocked=false;
+    }
+  });
+  const claimed=new Set();
+  const claims=players.filter(p=>p.partnerId).sort((a,b)=>partnerTime(b)-partnerTime(a)||String(a.id).localeCompare(String(b.id)));
+  claims.forEach(p=>{
+    if(!p.partnerId||claimed.has(p.id))return;
+    const partner=index.get(p.partnerId);
+    if(!partner||claimed.has(partner.id)){p.partnerId=null;p.partnerLocked=false;return;}
+    const pTime=partnerTime(p),partnerTimeValue=partnerTime(partner);
+    // A newer unlink on the other profile must not be resurrected by an older copy.
+    if(!partner.partnerId&&partnerTimeValue>=pTime){p.partnerId=null;p.partnerLocked=false;return;}
+    // A newer relationship on the other profile wins over this stale claim.
+    if(partner.partnerId&&partner.partnerId!==p.id&&partnerTimeValue>pTime){p.partnerId=null;p.partnerLocked=false;return;}
+    const reciprocal=partner.partnerId===p.id;
+    const locked=reciprocal
+      ?!!(p.partnerLocked&&partner.partnerLocked)
+      :(pTime>=partnerTimeValue?!!p.partnerLocked:!!partner.partnerLocked);
+    const changedAt=Math.max(pTime,partnerTimeValue);
+    p.partnerId=partner.id;partner.partnerId=p.id;
+    p.partnerLocked=locked;partner.partnerLocked=locked;
+    p.partnerUpdatedAt=changedAt;partner.partnerUpdatedAt=changedAt;
+    claimed.add(p.id);claimed.add(partner.id);
+  });
+  players.forEach(p=>{
+    if(p.partnerId&&!claimed.has(p.id)){p.partnerId=null;p.partnerLocked=false;}
+  });
+}
+function clearPartnerLinks(playerId,at=Date.now()){
+  const player=byId(playerId);
+  if(!player)return;
+  const related=new Set([player.id]);
+  if(player.partnerId)related.add(player.partnerId);
+  store.players.forEach(other=>{if(other.partnerId===player.id)related.add(other.id);});
+  related.forEach(id=>{
+    const target=byId(id);if(!target)return;
+    target.partnerId=null;target.partnerLocked=false;target.partnerUpdatedAt=at;touchPlayer(target,at);
+  });
+}
+function setPreferredPartner(playerId,requestedPartnerId,at=Date.now()){
+  const player=byId(playerId);
+  const target=requestedPartnerId?byId(requestedPartnerId):null;
+  if(!player)return {ok:false,message:'ไม่พบผู้เล่นคนนี้'};
+  if(requestedPartnerId&&(!target||target.id===player.id))return {ok:false,message:'เลือกคู่ประจำไม่ถูกต้อง'};
+  const current=partnerOf(player);
+  if((current?.id||'')===(target?.id||''))return {ok:true,changed:false};
+  if(target&&target.partnerId&&target.partnerId!==player.id)return {ok:false,message:target.name+' มีคู่ประจำอยู่แล้ว'};
+  clearPartnerLinks(player.id,at);
+  if(!target)return {ok:true,changed:true};
+  clearPartnerLinks(target.id,at);
+  player.partnerId=target.id;target.partnerId=player.id;
+  player.partnerLocked=true;target.partnerLocked=true;
+  player.partnerUpdatedAt=at;target.partnerUpdatedAt=at;
+  touchPlayer(player,at);touchPlayer(target,at);
   const playing=new Set(playingIds());
-  return store.players.filter(p=>p.inSession&&!playing.has(p.id)&&p.status!=='rest')
-    .sort(fairCompare);
+  if(!playing.has(player.id)&&!playing.has(target.id))syncLockedPartnerSession(player,target,at);
+  return {ok:true,changed:true};
+}
+function syncLockedPartnerSession(player,partner,at=Date.now()){
+  if(!player||!partner||(!player.inSession&&!partner.inSession))return;
+  const playing=new Set(playingIds());
+  if(playing.has(player.id)||playing.has(partner.id))return;
+  const unit=[player,partner];
+  const sameSession=unit.every(p=>p.sessionId===store.session.id);
+  const games=sameSession?Math.max(...unit.map(sessionGamesOf)):currentSessionFloor(unit.map(p=>p.id));
+  const tie=Math.min(...unit.map(p=>Number(p.sessionTie)||sessionTieFor(p.id)));
+  const status=unit.some(p=>p.status==='rest')?'rest':unit.every(p=>p.status==='done')?'done':'wait';
+  unit.forEach(p=>{
+    p.inSession=true;p.sessionId=store.session.id;p.sessionGames=games;p.sessionTie=tie;
+    p.sessionQueueAt=at;p.status=status;touchPlayer(p,at);
+  });
+}
+function togglePartnerLock(id){
+  const player=byId(id),partner=partnerOf(player);
+  if(!player||!partner){toast('ผู้เล่นคนนี้ยังไม่มีคู่ประจำ');return;}
+  const playing=new Set(playingIds());
+  if(playing.has(player.id)||playing.has(partner.id)){
+    toast('เปลี่ยนโหมดคู่หลังจบเกม เพื่อไม่กระทบเกมปัจจุบัน');return;
+  }
+  const at=Date.now();
+  const next=!isPartnerLocked(player);
+  player.partnerLocked=next;partner.partnerLocked=next;
+  player.partnerUpdatedAt=at;partner.partnerUpdatedAt=at;
+  touchPlayer(player,at);touchPlayer(partner,at);
+  if(next)syncLockedPartnerSession(player,partner,at);
+  render();
+  toast(next?player.name+' และ '+partner.name+' เล่นคู่กันแล้ว':player.name+' และ '+partner.name+' แยกคู่แล้ว');
+}
+function resetPartnerLocksForSession(at=Date.now()){
+  const seen=new Set();
+  store.players.forEach(player=>{
+    const partner=partnerOf(player);
+    if(!partner||seen.has(player.id)||seen.has(partner.id))return;
+    seen.add(player.id);seen.add(partner.id);
+    player.partnerLocked=true;partner.partnerLocked=true;
+    player.partnerUpdatedAt=at;partner.partnerUpdatedAt=at;
+    touchPlayer(player,at);touchPlayer(partner,at);
+  });
+}
+function queueEligibleSet(){
+  const playing=new Set(playingIds());
+  const base=store.players.filter(p=>p.inSession&&!playing.has(p.id)&&p.status!=='rest');
+  const ids=new Set(base.map(p=>p.id));
+  return new Set(base.filter(p=>{
+    const partner=isPartnerLocked(p)?partnerOf(p):null;
+    return !partner||ids.has(partner.id);
+  }).map(p=>p.id));
+}
+/* Queue priority: fewest games this session, then longest current wait.
+   A locked partner is an inseparable unit: both must be available before either appears. */
+function queueList(){
+  const ids=queueEligibleSet();
+  return store.players.filter(p=>ids.has(p.id)).sort(fairCompare);
+}
+function matchSelectionRespectsPartners(ids,eligibleIds){
+  const selected=new Set(ids);
+  for(const id of selected){
+    const player=byId(id);const partner=isPartnerLocked(player)?partnerOf(player):null;
+    if(partner&&eligibleIds.has(partner.id)&&!selected.has(partner.id))return false;
+  }
+  return true;
+}
+function selectionUnitIds(id,eligibleIds){
+  const player=byId(id);if(!player||!eligibleIds.has(id))return [];
+  const partner=isPartnerLocked(player)?partnerOf(player):null;
+  return partner&&eligibleIds.has(partner.id)?[player.id,partner.id]:[player.id];
+}
+function normalizeMatchSelection(ids,eligibleIds){
+  const chosen=[];const included=new Set();
+  uniqueStrings(ids).forEach(id=>{
+    if(!eligibleIds.has(id)||included.has(id))return;
+    const unit=selectionUnitIds(id,eligibleIds);
+    if(!unit.length||chosen.length+unit.filter(x=>!included.has(x)).length>4)return;
+    unit.forEach(x=>{if(!included.has(x)){included.add(x);chosen.push(x);}});
+  });
+  return chosen;
 }
 
 /* ---------------- render ---------------- */
@@ -1096,6 +1262,7 @@ function renderSession(){
         <div class="pname">${safeText(p.name)}<span class="status-dot ${cls}">${st}</span>
           ${p.exempt?'<span class="status-dot s-exempt">'+icon('zap',11)+' ยกเว้น</span>':''}</div>
         <div class="pmeta">ฝีมือ ${p.skill}/5 · เซสชัน ${sessionGamesOf(p)} เกม · ทั้งหมด ${gamesOf(p)} เกม</div>
+        ${partnerMeta(p,true)}
       </div>
       <div class="acts">
         <button class="icon-btn" title="${actionTitle}" onclick='toggleRest(${jsArg(p.id)})'>${actionIcon}</button>
@@ -1112,7 +1279,8 @@ function renderSession(){
   rosterList.innerHTML=available.length?available.map(p=>`<div class="pcard">
     <div class="avatar">${penguinSVG(scarfFor(p.name),38)}</div>
     <div class="body"><div class="pname">${safeText(p.name)}</div>
-      <div class="pmeta">ฝีมือ ${p.skill}/5 · เล่นทั้งหมด ${gamesOf(p)} เกม</div></div>
+      <div class="pmeta">ฝีมือ ${p.skill}/5 · เล่นทั้งหมด ${gamesOf(p)} เกม</div>
+      ${partnerMeta(p,false)}</div>
     <button class="btn mini" onclick='addToSession(${jsArg(p.id)})'>＋ เข้าร่วม</button>
   </div>`).join(''):`<div class="empty-state" style="padding:16px"><p>${search?'ไม่พบผู้เล่น':'ทุกคนอยู่ในเซสชันแล้ว'}</p></div>`;
 }
@@ -1141,6 +1309,7 @@ function renderPlayers(){
           ${p.exempt?'<span class="status-dot s-exempt" style="display:inline-flex;align-items:center;gap:3px">'+icon('zap',11)+' ยกเว้น</span>':''}
         </div>
         <div class="pmeta">ฝีมือ <span class="pips">${[1,2,3,4,5].map(n=>`<span class="pip ${n<=p.skill?'on':''}">${icon('fish',14)}</span>`).join('')}</span> (${p.skill}/5) · เล่นทั้งหมด ${gamesOf(p)} เกม</div>
+        ${partnerMeta(p,false)}
         ${p.perks.length?`<div>${p.perks.map(k=>`<span class="tag">${safeText(k)}</span>`).join('')}</div>`:''}
         ${p.comment?`<div class="pcomment">“${safeText(p.comment)}”</div>`:''}
       </div>
@@ -1184,18 +1353,33 @@ function closeSheet(){document.getElementById('scrim').classList.remove('on');ed
 document.getElementById('scrim').addEventListener('click',e=>{if(e.target.id==='scrim'&&!forceGroupSheet)closeSheet();});
 
 /* ---------------- player form ---------------- */
-let formPerks=new Set(), formSkill=3;
+let formPerks=new Set(), formSkill=3, formPartnerId='';
+function availablePartnerChoices(player){
+  const playerId=player?.id||null;
+  return store.players
+    .filter(candidate=>candidate.id!==playerId&&(!candidate.partnerId||candidate.partnerId===playerId))
+    .sort((a,b)=>a.name.localeCompare(b.name,'th'));
+}
 function openPlayerForm(id){
   editingId=id||null;
   const player=id?byId(id):null;
   if(id&&!player){toast('ไม่พบผู้เล่นคนนี้ ลองเปิดรายชื่อใหม่อีกครั้ง');return;}
   formPerks=new Set(Array.isArray(player?.perks)?player.perks:[]);
   formSkill=Math.round(clampNumber(player?.skill,1,5,3));
+  formPartnerId=partnerOf(player)?.id||'';
+  const choices=availablePartnerChoices(player);
   openSheet(`<h3>${id?'แก้ไขผู้เล่น':'เพิ่มผู้เล่น'}</h3>
     <div class="field"><label>ชื่อ</label>
       <input id="fName" maxlength="80" placeholder="เช่น พี่โต้ง" value="${player?safeText(player.name):''}"></div>
     <div class="field"><label>ระดับฝีมือ (1–5)</label>
       <div class="pipbtns" id="fSkill">${[1,2,3,4,5].map(n=>`<button onclick="setSkill(${n})" class="${n===formSkill?'on':''}">${n}</button>`).join('')}</div></div>
+    <div class="field"><label>คู่ประจำ</label>
+      <select id="fPartner" onchange="setFormPartner(this.value)">
+        <option value="">ไม่มีคู่ประจำ</option>
+        ${choices.map(candidate=>`<option value="${safeText(candidate.id)}" ${candidate.id===formPartnerId?'selected':''}>${safeText(candidate.name)}</option>`).join('')}
+      </select>
+      <div class="muted" style="font-size:11.5px;margin-top:5px">คู่ประจำจะเริ่มต้นเป็น “เล่นคู่กัน” และสามารถกดแยกคู่/กลับมาเล่นคู่กันได้ระหว่างเซสชัน</div>
+    </div>
     <div class="field"><label>จุดเด่น (เลือกได้หลายอย่าง)</label>
       <div class="perkbar" id="fPerks">${PERKS.map(k=>`<button class="perk-tog ${formPerks.has(k)?'on':''}" onclick='togglePerk(${jsArg(k)})'>${safeText(k)}</button>`).join('')}</div></div>
     <div class="field"><label>หมายเหตุ</label>
@@ -1208,6 +1392,7 @@ function setSkill(n){
   formSkill=Math.round(clampNumber(n,1,5,3));
   document.querySelectorAll('#fSkill button').forEach((b,i)=>b.classList.toggle('on',i+1===formSkill));
 }
+function setFormPartner(value){formPartnerId=byId(value)?.id||'';}
 function togglePerk(k){
   if(!PERKS.includes(k))return;
   if(formPerks.has(k))formPerks.delete(k);else formPerks.add(k);
@@ -1217,20 +1402,27 @@ function savePlayer(){
   const name=cleanText(document.getElementById('fName')?.value,'',80);
   if(!name){toast('ใส่ชื่อก่อนนะ');return;}
   const comment=cleanText(document.getElementById('fComment')?.value,'',500);
+  const requestedPartnerId=byId(document.getElementById('fPartner')?.value)?.id||'';
   const changedAt=Date.now();
   const wasEditing=Boolean(editingId);
+  let player;
   if(wasEditing){
-    const player=byId(editingId);
+    player=byId(editingId);
     if(!player){toast('ไม่พบผู้เล่นคนนี้ ลองเปิดรายชื่อใหม่อีกครั้ง');closeSheet();return;}
     Object.assign(player,{name,skill:formSkill,comment,perks:[...formPerks].filter(k=>PERKS.includes(k)),updatedAt:changedAt});
   }else{
     const id=pid();
-    store.players.push({id,name,skill:formSkill,comment,perks:[...formPerks].filter(k=>PERKS.includes(k)),
+    player={id,name,skill:formSkill,comment,perks:[...formPerks].filter(k=>PERKS.includes(k)),
       status:'wait',exempt:false,inSession:false,gamesPlayed:0,lastPlayedAt:0,
-      sessionId:null,sessionGames:0,sessionQueueAt:0,sessionTie:sessionTieFor(id),updatedAt:changedAt});
+      sessionId:null,sessionGames:0,sessionQueueAt:0,sessionTie:sessionTieFor(id),
+      partnerId:null,partnerLocked:false,partnerUpdatedAt:changedAt,updatedAt:changedAt};
+    store.players.push(player);
   }
+  const partnerResult=setPreferredPartner(player.id,requestedPartnerId,changedAt);
+  if(!partnerResult.ok){toast(partnerResult.message);return;}
   closeSheet();render();toast(wasEditing?'บันทึกแล้ว':'เพิ่ม '+name+' แล้ว');
 }
+
 function deletePlayer(id){if(byId(id))openDeletePlayerConfirm(id);}
 function openDeletePlayerConfirm(id){
   const player=byId(id);if(!player)return;
@@ -1264,6 +1456,7 @@ function confirmDeletePlayer(id){
   store.deletedPlayers=normalizeTombstones(store.deletedPlayers);
   store.deletedMatches=normalizeTombstones(store.deletedMatches);
   store.deletedPlayers[id]=deletedAt;
+  clearPartnerLinks(id,deletedAt);
   store.matches.filter(m=>[...(Array.isArray(m.side1)?m.side1:[]),...(Array.isArray(m.side2)?m.side2:[])].includes(id))
     .forEach(m=>{store.deletedMatches[m.id]=deletedAt;});
   store.matches=store.matches.filter(m=>!((Array.isArray(m.side1)?m.side1:[]).includes(id)||(Array.isArray(m.side2)?m.side2:[]).includes(id)));
@@ -1272,16 +1465,27 @@ function confirmDeletePlayer(id){
 }
 function addToSession(id){
   const player=byId(id);if(!player)return;
-  const now=Date.now(),sameSession=player.sessionId===store.session.id;
-  player.inSession=true;player.status='wait';
-  player.sessionGames=sameSession?Math.max(sessionGamesOf(player),currentSessionFloor(player.id)):currentSessionFloor(player.id);
-  player.sessionId=store.session.id;player.sessionQueueAt=now;player.sessionTie=sessionTieFor(player.id);touchPlayer(player,now);
-  render();toast('เพิ่ม '+player.name+' เข้าเซสชันแล้ว');
+  const unit=partnerUnit(player);
+  const playing=new Set(playingIds());
+  if(unit.some(p=>playing.has(p.id))){toast('คู่ประจำกำลังเล่นอยู่');return;}
+  const now=Date.now();
+  const sameSession=unit.every(p=>p.sessionId===store.session.id);
+  const games=sameSession?Math.max(...unit.map(sessionGamesOf)):currentSessionFloor(unit.map(p=>p.id));
+  const tie=Math.min(...unit.map(p=>Number(p.sessionTie)||sessionTieFor(p.id)));
+  unit.forEach(p=>{
+    p.inSession=true;p.status='wait';p.sessionGames=games;p.sessionId=store.session.id;
+    p.sessionQueueAt=now;p.sessionTie=tie;touchPlayer(p,now);
+  });
+  render();toast(unit.length===2?'เพิ่ม '+unit[0].name+' และ '+unit[1].name+' เข้าเซสชันแล้ว':'เพิ่ม '+player.name+' เข้าเซสชันแล้ว');
 }
 function removeFromSession(id){
   const player=byId(id);if(!player)return;
-  if(playingIds().includes(id)){toast('จบเกมก่อนนำผู้เล่นออกจากเซสชัน');return;}
-  player.inSession=false;player.status='wait';touchPlayer(player);render();toast('นำ '+player.name+' ออกจากเซสชันแล้ว');
+  const unit=partnerUnit(player);
+  const playing=new Set(playingIds());
+  if(unit.some(p=>playing.has(p.id))){toast('จบเกมก่อนนำผู้เล่นออกจากเซสชัน');return;}
+  const now=Date.now();
+  unit.forEach(p=>{p.inSession=false;p.status='wait';touchPlayer(p,now);});
+  render();toast(unit.length===2?'นำ '+unit[0].name+' และ '+unit[1].name+' ออกจากเซสชันแล้ว':'นำ '+player.name+' ออกจากเซสชันแล้ว');
 }
 function startNewSession(){
   if(store.matches.length){toast('จบเกมที่กำลังเล่นก่อนเริ่มวันเล่นใหม่');return;}
@@ -1307,7 +1511,7 @@ function openStartNewSessionConfirm(){
       <div class="confirm-points">
         <div class="confirm-point"><span class="dot">${icon('history',13)}</span><span>รีเซ็ตจำนวนเกม <b>ของวันนี้</b> ของทุกคนกลับเป็น 0</span></div>
         <div class="confirm-point"><span class="dot">${icon('users',13)}</span><span>ผู้เล่นที่อยู่ในเซสชันจะยังอยู่ครบ และกลับเป็นสถานะ <b>รอคิว</b></span></div>
-        <div class="confirm-point"><span class="dot">${icon('shuttle',13)}</span><span>เริ่มลำดับคิวใหม่อย่างยุติธรรม และตั้ง <b>รอบที่ 1</b> ใหม่</span></div>
+        <div class="confirm-point"><span class="dot">${icon('shuttle',13)}</span><span>คู่ประจำจะกลับมาเป็น <b>เล่นคู่กัน</b> สำหรับวันเล่นใหม่</span></div>
       </div>
     </div>
     <div class="confirm-actions">
@@ -1324,34 +1528,41 @@ function confirmStartNewSession(){
     player.sessionId=store.session.id;player.sessionGames=0;player.sessionQueueAt=now;
     player.sessionTie=sessionTieFor(player.id);player.status='wait';touchPlayer(player,now);
   });
+  resetPartnerLocksForSession(now);
   closeSheet();render();toast('เริ่มวันเล่นใหม่แล้ว');
 }
 function toggleRest(id){
   const player=byId(id);if(!player)return;
   if(!player.inSession){addToSession(id);return;}
-  if(playingIds().includes(id)){toast('คนนี้กำลังเล่นอยู่');return;}
+  const unit=partnerUnit(player);
+  const playing=new Set(playingIds());
+  if(unit.some(p=>playing.has(p.id))){toast(unit.length===2?'คู่ประจำกำลังเล่นอยู่':'คนนี้กำลังเล่นอยู่');return;}
   const changedAt=Date.now();
-  if(player.status==='done'){
-    player.status='wait';player.sessionQueueAt=changedAt;touchPlayer(player,changedAt);
-    render();toast(player.name+' กลับเข้าคิวแล้ว');return;
+  if(unit.every(p=>p.status==='done')){
+    unit.forEach(p=>{p.status='wait';p.sessionQueueAt=changedAt;touchPlayer(p,changedAt);});
+    render();toast(unit.length===2?'คู่ประจำกลับเข้าคิวแล้ว':player.name+' กลับเข้าคิวแล้ว');return;
   }
-  if(player.status==='rest'){
-    player.status='wait';
-    player.sessionGames=Math.max(sessionGamesOf(player),currentSessionFloor(player.id));
-    player.sessionQueueAt=changedAt;
-  }else player.status='rest';
-  touchPlayer(player,changedAt);render();
-  toast(player.status==='rest'?player.name+' พักแล้ว':player.name+' กลับมาเล่น');
+  if(unit.every(p=>p.status==='rest')){
+    const games=Math.max(...unit.map(sessionGamesOf),currentSessionFloor(unit.map(p=>p.id)));
+    unit.forEach(p=>{p.status='wait';p.sessionGames=games;p.sessionQueueAt=changedAt;touchPlayer(p,changedAt);});
+  }else{
+    unit.forEach(p=>{p.status='rest';touchPlayer(p,changedAt);});
+  }
+  render();
+  toast(unit.every(p=>p.status==='rest')?(unit.length===2?'คู่ประจำพักแล้ว':player.name+' พักแล้ว'):(unit.length===2?'คู่ประจำกลับมาเล่นแล้ว':player.name+' กลับมาเล่น'));
 }
 
 /* ---------------- exempt toggle (from match modal) ---------------- */
 function toggleExempt(id){
   const player=byId(id);if(!player)return;
-  if(playingIds().includes(id)){toast('เปลี่ยนกติกาของผู้เล่นระหว่างเกมไม่ได้');return;}
-  player.exempt=!player.exempt;touchPlayer(player);
+  const unit=partnerUnit(player);
+  if(unit.some(p=>playingIds().includes(p.id))){toast('เปลี่ยนกติกาของผู้เล่นระหว่างเกมไม่ได้');return;}
+  const next=!player.exempt;
+  const at=Date.now();
+  unit.forEach(p=>{p.exempt=next;touchPlayer(p,at);});
   render();
   if(matchDraft)openMatchDraft();
-  toast(player.exempt?player.name+' → ยกเว้นกติกา':player.name+' → ตามกติกาปกติ');
+  toast(next?(unit.length===2?'คู่ประจำ → ยกเว้นกติกา':player.name+' → ยกเว้นกติกา'):(unit.length===2?'คู่ประจำ → ตามกติกาปกติ':player.name+' → ตามกติกาปกติ'));
 }
 
 /* ---------------- match building ---------------- */
@@ -1371,12 +1582,22 @@ function repeatPenalty(a,b){
   });
   return penalty;
 }
+function splitRespectsPartnerLocks(a,b){
+  const sideA=new Set((a||[]).map(p=>p.id));
+  const everyone=[...(a||[]),...(b||[])];
+  const inMatch=new Set(everyone.map(p=>p.id));
+  return everyone.every(player=>{
+    const partner=isPartnerLocked(player)?partnerOf(player):null;
+    return !partner||!inMatch.has(partner.id)||sideA.has(player.id)===sideA.has(partner.id);
+  });
+}
 function bestSplit(four){
   if(!Array.isArray(four)||four.length!==4||four.some(p=>!p))return null;
   const [p,q,r,s]=four;
   const opts=[{a:[p,q],b:[r,s]},{a:[p,r],b:[q,s]},{a:[p,s],b:[q,r]}]
+    .filter(o=>splitRespectsPartnerLocks(o.a,o.b))
     .map(o=>({...o,diff:Math.abs(sum(o.a)-sum(o.b)),repeat:repeatPenalty(o.a,o.b)}));
-  opts.sort((x,y)=>x.diff-y.diff||x.repeat-y.repeat);return opts[0];
+  opts.sort((x,y)=>x.diff-y.diff||x.repeat-y.repeat);return opts[0]||null;
 }
 function combinations(items,k,start=0,picked=[],out=[]){
   if(picked.length===k){out.push([...picked]);return out;}
@@ -1385,9 +1606,20 @@ function combinations(items,k,start=0,picked=[],out=[]){
   }
   return out;
 }
+function addPartnerUnits(items,eligibleIds){
+  const output=[];const seen=new Set();
+  items.forEach(player=>{
+    if(!player||!eligibleIds.has(player.id))return;
+    selectionUnitIds(player.id,eligibleIds).forEach(id=>{
+      if(!seen.has(id)){seen.add(id);const found=byId(id);if(found)output.push(found);}
+    });
+  });
+  return output.sort(fairCompare);
+}
 function autoMatchPlan(q){
-  const regular=q.filter(p=>!p.exempt).sort(fairCompare);
-  const exempt=q.filter(p=>p.exempt).sort(fairCompare);
+  const eligibleIds=new Set(q.map(p=>p.id));
+  const regular=q.filter(p=>!playerIsPriorityExempt(p)).sort(fairCompare);
+  const exempt=q.filter(p=>playerIsPriorityExempt(p)).sort(fairCompare);
   let pool,mandatory;
   if(regular.length>=4){
     const cutoff=sessionGamesOf(regular[3]);
@@ -1400,10 +1632,13 @@ function autoMatchPlan(q){
     const exemptSlots=Math.max(4-regular.length,MATCH_CANDIDATE_WINDOW-regular.length);
     pool=[...regular,...exempt.slice(0,exemptSlots)];
   }
-  const required=new Set(mandatory.map(p=>p.id));
+  pool=addPartnerUnits(pool,eligibleIds);
+  mandatory=addPartnerUnits(mandatory,eligibleIds);
+  const required=mandatory.length<=4?new Set(mandatory.map(p=>p.id)):new Set();
   const rank=new Map(pool.map((p,i)=>[p.id,i]));
   const options=combinations(pool,4)
     .filter(four=>[...required].every(id=>four.some(p=>p.id===id)))
+    .filter(four=>matchSelectionRespectsPartners(four.map(p=>p.id),eligibleIds))
     .map(four=>{
       const split=bestSplit(four);if(!split)return null;
       const waitCost=four.reduce((t,p)=>t+(rank.get(p.id)||0),0);
@@ -1419,7 +1654,7 @@ function openMatch(courtId){
   const q=queueList();
   if(q.length<4){toast('ต้องมีผู้เล่นในคิวอย่างน้อย 4 คน');return;}
   const plan=autoMatchPlan(q);
-  if(!plan){toast('ยังจัดผู้เล่นลงสนามไม่ได้');return;}
+  if(!plan){toast('ยังจัดผู้เล่นลงสนามไม่ได้ — ตรวจสอบคู่ประจำหรือสถานะพัก');return;}
   matchDraft={courtId,courtLabel:court.label,selected:plan.four.map(p=>p.id)};
   openMatchDraft();
 }
@@ -1429,7 +1664,7 @@ function openMatchDraft(){
   if(!court||store.matches.some(m=>m.courtId===matchDraft.courtId)){closeSheet();toast('สนามนี้ไม่พร้อมจัดคู่แล้ว');return;}
   const q=queueList();
   const eligible=new Set(q.map(p=>p.id));
-  matchDraft.selected=uniqueStrings(matchDraft.selected).filter(id=>eligible.has(id)).slice(0,4);
+  matchDraft.selected=normalizeMatchSelection(matchDraft.selected,eligible);
   matchDraft.courtLabel=court.label;
   const selected=matchDraft.selected;
   const chosen=selected.map(byId).filter(Boolean);
@@ -1440,37 +1675,46 @@ function openMatchDraft(){
       matchDraft.split=split;
       preview=`<div class="balance-note"><span>ฝั่ง A <b>${sum(split.a)}</b> · ${split.a.map(p=>safeText(p.name)).join(', ')}</span></div>
         <div class="balance-note"><span>ฝั่ง B <b>${sum(split.b)}</b> · ${split.b.map(p=>safeText(p.name)).join(', ')}</span></div>
-        <div class="swaphint">ต่างกัน ${split.diff} แต้ม · คัดจากผู้รอสูงสุด ${MATCH_CANDIDATE_WINDOW} คนตามจำนวนเกมและเวลารอ</div>`;
-    }
+        <div class="swaphint">ต่างกัน ${split.diff} แต้ม · คู่ประจำที่เลือก “เล่นคู่กัน” จะอยู่ฝั่งเดียวกันเสมอ</div>`;
+    }else preview=`<div class="swaphint">รายชื่อที่เลือกแยกคู่ประจำอยู่ — ปรับรายชื่อใหม่</div>`;
   }else{
     matchDraft.split=null;
-    preview=`<div class="swaphint">เลือกผู้เล่นให้ครบ 4 คน (ตอนนี้ ${selected.length}/4)</div>`;
+    preview=`<div class="swaphint">เลือกผู้เล่นให้ครบ 4 คน (ตอนนี้ ${selected.length}/4) · คู่ที่ล็อกไว้จะถูกเลือกพร้อมกัน</div>`;
   }
   openSheet(`<h3>จัดคู่ลงสนาม ${safeText(court.label)}</h3>
     ${preview}
     <div style="max-height:46vh;overflow-y:auto;margin:6px 0">
     ${q.map(player=>{
       const on=selected.includes(player.id);
+      const partner=partnerOf(player);
+      const mode=partner?(isPartnerLocked(player)?` · คู่กับ ${safeText(partner.name)}`:' · แยกคู่'):'';
       return `<div class="pick ${on?'sel':''}" onclick='togglePick(${jsArg(player.id)})'>
         <div class="cb">${on?icon('check',13):''}</div>
         <div class="avatar sm">${penguinSVG(scarfFor(player.name),26)}</div>
-        <div class="nm">${safeText(player.name)}
+        <div class="nm">${safeText(player.name)}${partner?`<span class="tag" style="margin-left:4px">${isPartnerLocked(player)?'เล่นคู่กัน':'แยกคู่'}</span>`:''}
           ${player.exempt?'<span class="status-dot s-exempt" style="margin-left:4px">'+icon('zap',11)+'</span>':''}
         </div>
-        <span class="sk">${player.skill} · ${sessionGamesOf(player)} เกม</span>
+        <span class="sk">${player.skill} · ${sessionGamesOf(player)} เกม${mode}</span>
         <button class="icon-btn" style="margin-left:6px" onclick='event.stopPropagation();toggleExempt(${jsArg(player.id)})' title="ยกเว้นกติกาเวียนคิว">${icon('zap',14)}</button>
       </div>`;
     }).join('')}
     </div>
-    <button class="btn block" onclick="confirmMatch()" ${selected.length!==4?'style="opacity:.5;pointer-events:none"':''}>เริ่มเกม →</button>`);
+    <button class="btn block" onclick="confirmMatch()" ${selected.length!==4||!matchDraft.split?'style="opacity:.5;pointer-events:none"':''}>เริ่มเกม →</button>`);
 }
 function togglePick(id){
   if(!matchDraft)return;
   const eligible=new Set(queueList().map(p=>p.id));
-  if(!eligible.has(id)){toast('ผู้เล่นคนนี้ไม่อยู่ในคิวแล้ว');openMatchDraft();return;}
-  const selected=matchDraft.selected;const index=selected.indexOf(id);
-  if(index>=0)selected.splice(index,1);
-  else{if(selected.length>=4){toast('เลือกได้แค่ 4 คน — เอาออกก่อน');return;}selected.push(id);}
+  const unit=selectionUnitIds(id,eligible);
+  if(!unit.length){toast('ผู้เล่นคนนี้ไม่อยู่ในคิวแล้ว');openMatchDraft();return;}
+  const selected=matchDraft.selected;
+  const selectedSet=new Set(selected);
+  if(unit.every(member=>selectedSet.has(member))){
+    matchDraft.selected=selected.filter(member=>!unit.includes(member));
+  }else{
+    const missing=unit.filter(member=>!selectedSet.has(member));
+    if(selected.length+missing.length>4){toast('ต้องเว้นที่สำหรับคู่ประจำทั้งคู่ก่อน');return;}
+    matchDraft.selected=[...selected,...missing];
+  }
   openMatchDraft();
 }
 function confirmMatch(){
@@ -1480,13 +1724,16 @@ function confirmMatch(){
   if(!court||store.matches.some(m=>m.courtId===draft.courtId)){toast('สนามนี้ไม่พร้อมจัดคู่แล้ว');closeSheet();return;}
   const eligible=new Set(queueList().map(p=>p.id));
   const selected=uniqueStrings(draft.selected);
-  if(selected.length!==4||selected.some(id=>!eligible.has(id))){toast('รายชื่อผู้เล่นเปลี่ยนแล้ว เลือกใหม่อีกครั้ง');openMatchDraft();return;}
+  if(selected.length!==4||selected.some(id=>!eligible.has(id))||!matchSelectionRespectsPartners(selected,eligible)){
+    toast('รายชื่อผู้เล่นหรือโหมดคู่เปลี่ยนแล้ว เลือกใหม่อีกครั้ง');openMatchDraft();return;
+  }
   const split=bestSplit(selected.map(byId));
   if(!split){toast('จัดทีมไม่สำเร็จ ลองเลือกใหม่');return;}
   const now=Date.now();
   store.matches.push({id:mid(),courtId:court.id,side1:split.a.map(p=>p.id),side2:split.b.map(p=>p.id),sessionId:store.session.id,startedAt:now,updatedAt:now});
   closeSheet();render();toast('เริ่มเกมสนาม '+court.label);
 }
+
 function endMatch(courtId){confirmEndMatch(courtId);}
 function openEndMatchConfirm(courtId){
   const match=store.matches.find(m=>m.courtId===courtId);if(!match)return;
