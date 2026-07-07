@@ -1361,7 +1361,7 @@ function renderSession(){
       <div class="body">
         <div class="pname">${safeText(p.name)}<span class="status-dot ${cls}">${st}</span>
           ${p.exempt?'<span class="status-dot s-exempt">'+icon('zap',11)+' ยกเว้น</span>':''}</div>
-        <div class="pmeta">ฝีมือ ${p.skill}/5 · เซสชัน ${sessionGamesOf(p)} เกม · ทั้งหมด ${gamesOf(p)} เกม</div>
+        <div class="pmeta">ฝีมือ ${p.skill}/5 · เซสชัน ${sessionGamesOf(p)} เกม</div>
         ${partnerMeta(p,true)}
       </div>
       <div class="acts">
@@ -1380,7 +1380,7 @@ function renderSession(){
   rosterList.innerHTML=available.length?available.map(p=>`<div class="pcard">
     <div class="avatar">${penguinSVG(scarfFor(p.name),38)}</div>
     <div class="body"><div class="pname">${safeText(p.name)}</div>
-      <div class="pmeta">ฝีมือ ${p.skill}/5 · เล่นทั้งหมด ${gamesOf(p)} เกม</div>
+      <div class="pmeta">ฝีมือ ${p.skill}/5</div>
       ${partnerMeta(p,false)}</div>
     <button class="btn mini" onclick='addToSession(${jsArg(p.id)})'>＋ เข้าร่วม</button>
   </div>`).join(''):`<div class="empty-state" style="padding:16px"><p>${search?'ไม่พบผู้เล่น':'ทุกคนอยู่ในเซสชันแล้ว'}</p></div>`;
@@ -1409,7 +1409,7 @@ function renderPlayers(){
           <span class="status-dot ${cls}">${st}</span>
           ${p.exempt?'<span class="status-dot s-exempt" style="display:inline-flex;align-items:center;gap:3px">'+icon('zap',11)+' ยกเว้น</span>':''}
         </div>
-        <div class="pmeta">ฝีมือ <span class="pips">${[1,2,3,4,5].map(n=>`<span class="pip ${n<=p.skill?'on':''}">${icon('fish',14)}</span>`).join('')}</span> (${p.skill}/5) · เล่นทั้งหมด ${gamesOf(p)} เกม</div>
+        <div class="pmeta">ฝีมือ <span class="pips">${[1,2,3,4,5].map(n=>`<span class="pip ${n<=p.skill?'on':''}">${icon('fish',14)}</span>`).join('')}</span> (${p.skill}/5)</div>
         ${partnerMeta(p,false)}
         ${p.perks.length?`<div>${p.perks.map(k=>`<span class="tag">${safeText(k)}</span>`).join('')}</div>`:''}
         ${p.comment?`<div class="pcomment">“${safeText(p.comment)}”</div>`:''}
