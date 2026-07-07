@@ -460,6 +460,7 @@
       <h2>กำลังเข้าร่วม</h2>
       <span class="count" id="sessionActiveCount"></span>
     </div>
+    <input id="sessionActiveSearch" placeholder="ค้นหาชื่อผู้เล่น" oninput="renderSession()" style="margin-bottom:10px">
     <div class="plist" id="sessionActiveList"></div>
     <div class="sec-title" style="margin-top:18px">
       <h2>เพิ่มจากรายชื่อก๊วน</h2>
@@ -1347,7 +1348,8 @@ function renderSession(){
 
   const playing=new Set(playingIds());
   const activeList=document.getElementById('sessionActiveList');
-  const sortedActive=[...active].sort((a,b)=>{
+  const activeSearch=(document.getElementById('sessionActiveSearch').value||'').trim().toLocaleLowerCase('th');
+  const sortedActive=[...active].filter(p=>!activeSearch||p.name.toLocaleLowerCase('th').includes(activeSearch)).sort((a,b)=>{
     const ap=playing.has(a.id)?0:1,bp=playing.has(b.id)?0:1;
     return ap-bp||fairCompare(a,b);
   });
@@ -1369,7 +1371,8 @@ function renderSession(){
         <button class="icon-btn" title="${actionTitle}" onclick='toggleRest(${jsArg(p.id)})'>${actionIcon}</button>
         <button class="btn mini warn" onclick='removeFromSession(${jsArg(p.id)})'>นำออก</button>
       </div></div>`;
-  }).join(''):`<div class="empty-state" style="padding:20px">
+  }).join(''):active.length?`<div class="empty-state" style="padding:20px">
+    <div class="ic">${icon('users',38)}</div><p>ไม่พบผู้เล่น</p></div>`:`<div class="empty-state" style="padding:20px">
     <div class="ic">${icon('users',38)}</div><p>ยังไม่มีผู้เล่นในเซสชัน</p>
     <p>เลือกผู้เล่นจากรายชื่อก๊วนด้านล่าง</p></div>`;
 
