@@ -35,6 +35,7 @@
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
+  body.sheet-open{overflow:hidden}
   body{
     font-family:'Noto Sans Thai','Segoe UI',system-ui,sans-serif;
     background:var(--ice);
@@ -1465,10 +1466,12 @@ function openSheet(html){
   resetSheetDragState();
   document.getElementById('sheetContent').innerHTML=html;
   scrimEl.classList.add('on');
+  document.body.classList.add('sheet-open');
 }
 function closeSheet(){
   resetSheetDragState();
   scrimEl.classList.remove('on');editingId=null;matchDraft=null;batchDraft=null;
+  document.body.classList.remove('sheet-open');
 }
 function dismissSheetByDrag(drag){
   if(forceGroupSheet){return;}
