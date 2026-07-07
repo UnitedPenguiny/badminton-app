@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0b2540">
-<meta name="app-version" content="2026-07-07-partners-1">
+<meta name="app-version" content="2026-07-07-gametypes-1">
 <title>คิวแบด — จัดกลุ่มก๊วนแบดมินตัน</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -354,6 +354,30 @@
   .match-confirm .versus{display:grid;place-items:center;font-size:11px;font-weight:900;color:#fff}
   .match-confirm .versus span{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(165deg,#164369,#0d2b49);box-shadow:0 3px 10px rgba(13,42,68,.22)}
   @media(max-width:420px){.confirm-stats{grid-template-columns:1fr}.confirm-actions{flex-direction:column}.match-confirm{grid-template-columns:1fr}.match-confirm .versus{height:22px}.match-confirm .versus span{width:28px;height:28px}}
+
+  /* ===== game-type chooser ===== */
+  .gtype-btn{display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+    padding:12px 13px;border-radius:15px;border:1.5px solid var(--edge);
+    background:linear-gradient(180deg,#ffffff,#f7fbfe);transition:transform .12s,border-color .15s,box-shadow .15s;
+    box-shadow:0 2px 8px rgba(13,42,68,.05)}
+  .gtype-btn:active{transform:scale(.985)}
+  @media(hover:hover){.gtype-btn:hover{border-color:var(--glacier);box-shadow:0 6px 16px rgba(29,111,165,.14)}}
+  .gtype-btn .gtype-ic{width:38px;height:38px;border-radius:12px;flex-shrink:0;display:grid;place-items:center;
+    background:linear-gradient(165deg,#dff2fd,#cfe6f7);color:var(--glacier)}
+  .gtype-btn.heavy .gtype-ic{background:linear-gradient(165deg,#ffe0d3,#ffcbb6);color:var(--warn)}
+  .gtype-btn.light .gtype-ic{background:linear-gradient(165deg,#d8f6ec,#c2ecdc);color:#1c9e7c}
+  .gtype-btn.control .gtype-ic{background:linear-gradient(165deg,#e9deff,#d8c6fb);color:var(--exempt)}
+  .gtype-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .gtype-txt b{font-size:14.5px;color:var(--ink)}
+  .gtype-txt small{font-size:12px;color:var(--muted)}
+  .gtype-arrow{color:var(--glacier);font-weight:800;font-size:17px;flex-shrink:0}
+  .gtype-btn.sel{border-color:var(--glacier);box-shadow:0 0 0 3px rgba(29,111,165,.12)}
+  .gtype-chip{display:inline-flex;align-items:center;gap:5px;margin-top:2px;padding:5px 11px;
+    border-radius:999px;font-size:12.5px;font-weight:700;color:var(--deep);
+    border:1.5px solid var(--edge);background:rgba(255,255,255,.85);transition:border-color .15s,background .15s}
+  .gtype-chip:active{background:#e4f1fa}
+  @media(hover:hover){.gtype-chip:hover{border-color:var(--glacier)}}
+  .gtype-chip .gtype-caret{color:var(--muted);font-size:11px}
 </style>
 </head>
 <body>
@@ -527,6 +551,13 @@ function penguinArt(s){
 
 /* ---------------- state ---------------- */
 const PERKS = ['เล่นหน้าดี','เล่นหลังดี','ตบหนัก','วางลูกดี','วิ่งไว','เกมรับดี','สมาธิดี'];
+/* Game styles the user can pick per court. 'auto' keeps the default balanced matchmaking. */
+const GAME_TYPES = {
+  auto:   {label:'จับคู่อัตโนมัติ', desc:'จัดให้ฝีมือสองฝั่งสมดุลตามคิว', icon:'zap'},
+  control:{label:'เกมคุม',          desc:'ฝั่งละ 1 มือแรง (4–5) + 1 มือเบา (1–3)', icon:'users'},
+  heavy:  {label:'เกมหนัก',         desc:'มือแรงทั้งหมด (ฝีมือ 4–5)', icon:'shuttle'},
+  light:  {label:'เกมเบา',          desc:'มือเบาทั้งหมด (ฝีมือ 1–3)', icon:'fish'}
+};
 const VALID_STATUSES = new Set(['wait','rest','done']);
 const store = {
   schemaVersion: 3,
@@ -586,7 +617,7 @@ function pid(){return randomId('p');}
 function mid(){return randomId('m');}
 function hid(){return randomId('h');}
 function sid(){return randomId('s');}
-function makeCourt(label,at=Date.now()){return {id:cid(),label:cleanText(label,'1',50),updatedAt:at};}
+function makeCourt(label,at=Date.now()){return {id:cid(),label:cleanText(label,'1',50),gameType:'auto',updatedAt:at};}
 function newSessionState(){
   const now=Date.now();
   return {id:sid(),startedAt:now,seed:Math.random().toString(36).slice(2),updatedAt:now};
@@ -678,6 +709,7 @@ function normalizeStore(){
     courtIds.add(id);
     court.id=id;
     court.label=cleanText(court.label,String(index+1),50);
+    court.gameType=GAME_TYPES[court.gameType]?court.gameType:'auto';
     court.updatedAt=Number.isFinite(court.updatedAt)?court.updatedAt:store.updatedAt;
     return court;
   }).filter(c=>{
@@ -715,6 +747,7 @@ function normalizeStore(){
     matchIds.add(id);
     m.id=id;
     m.courtId=typeof m.courtId==='string'?m.courtId:'';
+    m.gameType=GAME_TYPES[m.gameType]?m.gameType:'auto';
     m.side1=uniqueStrings(m.side1);
     m.side2=uniqueStrings(m.side2);
     m.startedAt=Number.isFinite(m.startedAt)?m.startedAt:recordTime(m);
@@ -1202,10 +1235,13 @@ function renderQueue(){
     <span class="games">${sessionGamesOf(p)} เกมในเซสชัน</span></div>`).join('');
 }
 function emptyCourtMarkup(c){
+  const gt=courtGameType(c);
   return `<div class="court-card"><div class="court-head"><h3>สนาม ${safeText(c.label)}</h3>
     <span class="court-status">ว่าง</span></div>
     <div class="court-body"><div class="empty-court">
     <div class="art">${penguinArt(58)}</div>
+    <button class="gtype-chip" onclick='openGameTypeChooser(${jsArg(c.id)},${jsArg(c.label)})'>
+      ${icon(GAME_TYPES[gt].icon,13)}<span>${safeText(GAME_TYPES[gt].label)}</span><span class="gtype-caret">▾</span></button>
     <button class="btn sm block" style="margin-top:8px" onclick='openMatch(${jsArg(c.id)})'>จัดคู่ลงสนาม</button>
     </div></div></div>`;
 }
@@ -1219,6 +1255,7 @@ function renderCourts(){
     return `<div class="court-card"><div class="court-head"><h3>สนาม ${safeText(c.label)}</h3>
       <span class="court-status"><span class="live-dot"></span>กำลังเล่น</span></div>
       <div class="court-body">
+        ${m.gameType&&m.gameType!=='auto'&&GAME_TYPES[m.gameType]?`<div style="text-align:center;margin-bottom:9px"><span class="tag" style="margin:0;display:inline-flex;align-items:center;gap:4px">${icon(GAME_TYPES[m.gameType].icon,12)} ${safeText(GAME_TYPES[m.gameType].label)}</span></div>`:''}
         <div class="matchup">
           <div class="side"><h4>ฝั่ง A</h4>
             ${s1.map(p=>`<div class="p">${safeText(p.name)}<small>${p.skill}</small></div>`).join('')}
@@ -1648,15 +1685,85 @@ function autoMatchPlan(q){
     .sort((a,b)=>a.score-b.score||a.split.diff-b.split.diff||a.waitCost-b.waitCost||a.split.repeat-b.split.repeat);
   return options[0]||null;
 }
+/* Build a four for a chosen game style. 'auto' defers to the balanced planner above.
+   Special styles walk the WHOLE session queue in priority order (fewest games, longest
+   wait) and take the first players that fit the style's skill bands — queue order wins
+   over balance, so it doesn't optimise inside an 8-player window. Locked partners stay
+   together; bestSplit only arranges the four we picked. Null if the roster can't fill it. */
+const skillOf=p=>Number(p?.skill)||0;
+function typedMatchPlan(q,type){
+  if(type==='auto'||!GAME_TYPES[type])return autoMatchPlan(q);
+  const strong=p=>skillOf(p)>=4;      // 4–5
+  const weak=p=>skillOf(p)<=3;        // 1–3
+  const capStrong=type==='control'?2:(type==='heavy'?4:0);
+  const capWeak=type==='control'?2:(type==='light'?4:0);
+  const eligibleIds=new Set(q.map(p=>p.id));
+  const chosen=[],picked=new Set();
+  let nStrong=0,nWeak=0;
+  for(const p of q){
+    if(chosen.length>=4)break;
+    if(picked.has(p.id))continue;
+    // A locked partner comes as an inseparable unit; both must fit or we skip the pair.
+    const unit=selectionUnitIds(p.id,eligibleIds).map(byId).filter(Boolean);
+    if(!unit.length||chosen.length+unit.length>4)continue;
+    let addS=0,addW=0,ok=true;
+    for(const m of unit){
+      if(type==='heavy'){if(!strong(m)){ok=false;break;}addS++;}
+      else if(type==='light'){if(!weak(m)){ok=false;break;}addW++;}
+      else strong(m)?addS++:addW++; // control: strong 4–5 vs weak 1–3
+    }
+    if(!ok||nStrong+addS>capStrong||nWeak+addW>capWeak)continue;
+    unit.forEach(m=>{picked.add(m.id);chosen.push(m);});
+    nStrong+=addS;nWeak+=addW;
+  }
+  if(chosen.length!==4)return null;
+  const split=bestSplit(chosen);
+  return split?{four:chosen,split}:null;
+}
+function courtGameType(court){return court&&GAME_TYPES[court.gameType]?court.gameType:'auto';}
 function openMatch(courtId){
   const court=store.courts.find(c=>c.id===courtId);
   if(!court){toast('ไม่พบสนามนี้');return;}
   if(store.matches.some(m=>m.courtId===courtId)){toast('สนามนี้มีเกมกำลังเล่นอยู่แล้ว');return;}
   const q=queueList();
   if(q.length<4){toast('ต้องมีผู้เล่นในคิวอย่างน้อย 4 คน');return;}
-  const plan=autoMatchPlan(q);
-  if(!plan){toast('ยังจัดผู้เล่นลงสนามไม่ได้ — ตรวจสอบคู่ประจำหรือสถานะพัก');return;}
-  matchDraft={courtId,courtLabel:court.label,selected:plan.four.map(p=>p.id)};
+  // Use the court's saved style — no need to pick one every time.
+  startTypedMatch(courtId,courtGameType(court));
+}
+function openGameTypeChooser(courtId,label){
+  const court=store.courts.find(c=>c.id===courtId);
+  const current=courtGameType(court);
+  openSheet(`<h3>รูปแบบเกมประจำสนาม ${safeText(label)}</h3>
+    <p class="muted" style="font-size:13px;margin:-4px 0 12px">เลือกครั้งเดียว สนามนี้จะจัดคู่แบบนี้ทุกครั้งจนกว่าจะเปลี่ยน</p>
+    <div style="display:flex;flex-direction:column;gap:9px">
+    ${Object.entries(GAME_TYPES).map(([key,g])=>`
+      <button class="gtype-btn ${key} ${key===current?'sel':''}" onclick='startTypedMatch(${jsArg(courtId)},${jsArg(key)})'>
+        <span class="gtype-ic">${icon(g.icon,18)}</span>
+        <span class="gtype-txt"><b>${safeText(g.label)}${key===current?' · ใช้อยู่':''}</b><small>${safeText(g.desc)}</small></span>
+        <span class="gtype-arrow">→</span>
+      </button>`).join('')}
+    </div>`);
+}
+function startTypedMatch(courtId,type){
+  const court=store.courts.find(c=>c.id===courtId);
+  if(!court){toast('ไม่พบสนามนี้');return;}
+  if(store.matches.some(m=>m.courtId===courtId)){toast('สนามนี้มีเกมกำลังเล่นอยู่แล้ว');closeSheet();return;}
+  const gameType=GAME_TYPES[type]?type:'auto';
+  // Remember this style on the court so future matches reuse it.
+  if(court.gameType!==gameType){court.gameType=gameType;court.updatedAt=Date.now();save();if(!suppressCloudWrite)pushToCloud();}
+  const q=queueList();
+  if(q.length<4){toast('ต้องมีผู้เล่นในคิวอย่างน้อย 4 คน');renderCourts();return;}
+  const plan=typedMatchPlan(q,gameType);
+  if(!plan){
+    renderCourts();
+    toast({
+      heavy:'มือแรง (ฝีมือ 4–5) ในคิวไม่พอ 4 คน',
+      light:'มือเบา (ฝีมือ 1–3) ในคิวไม่พอ 4 คน',
+      control:'ต้องมีมือแรง (4–5) 2 คน และมือเบา (1–3) 2 คนในคิว'
+    }[gameType]||'ยังจัดผู้เล่นลงสนามไม่ได้ — ตรวจสอบคู่ประจำหรือสถานะพัก');
+    return;
+  }
+  matchDraft={courtId,courtLabel:court.label,selected:plan.four.map(p=>p.id),gameType};
   openMatchDraft();
 }
 function openMatchDraft(){
@@ -1682,7 +1789,12 @@ function openMatchDraft(){
     matchDraft.split=null;
     preview=`<div class="swaphint">เลือกผู้เล่นให้ครบ 4 คน (ตอนนี้ ${selected.length}/4) · คู่ที่ล็อกไว้จะถูกเลือกพร้อมกัน</div>`;
   }
+  const gt=matchDraft.gameType&&GAME_TYPES[matchDraft.gameType]?matchDraft.gameType:'auto';
   openSheet(`<h3>จัดคู่ลงสนาม ${safeText(court.label)}</h3>
+    <div class="row between" style="margin:-4px 0 10px">
+      <span class="tag" style="margin:0;display:inline-flex;align-items:center;gap:4px">${icon(GAME_TYPES[gt].icon,12)} ${safeText(GAME_TYPES[gt].label)}</span>
+      <button class="btn mini ghost" onclick='openGameTypeChooser(${jsArg(matchDraft.courtId)},${jsArg(court.label)})'>เปลี่ยนรูปแบบ</button>
+    </div>
     ${preview}
     <div style="max-height:46vh;overflow-y:auto;margin:6px 0">
     ${q.map(player=>{
@@ -1731,7 +1843,8 @@ function confirmMatch(){
   const split=bestSplit(selected.map(byId));
   if(!split){toast('จัดทีมไม่สำเร็จ ลองเลือกใหม่');return;}
   const now=Date.now();
-  store.matches.push({id:mid(),courtId:court.id,side1:split.a.map(p=>p.id),side2:split.b.map(p=>p.id),sessionId:store.session.id,startedAt:now,updatedAt:now});
+  const gameType=GAME_TYPES[draft.gameType]?draft.gameType:'auto';
+  store.matches.push({id:mid(),courtId:court.id,side1:split.a.map(p=>p.id),side2:split.b.map(p=>p.id),gameType,sessionId:store.session.id,startedAt:now,updatedAt:now});
   closeSheet();render();toast('เริ่มเกมสนาม '+court.label);
 }
 
