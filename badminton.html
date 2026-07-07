@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0b2540">
-<meta name="app-version" content="2026-07-07-gametypes-1">
+<meta name="app-version" content="2026-07-07-matchmaking-safety-v3">
 <title>คิวแบด — จัดกลุ่มก๊วนแบดมินตัน</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -283,11 +283,21 @@
   .scrim.on{display:flex}
   .sheet{background:linear-gradient(180deg,#ffffff,#f6fbfe);width:100%;max-width:560px;
     border-radius:26px 26px 0 0;border:1px solid rgba(255,255,255,.8);
-    padding:16px 16px 24px;max-height:90vh;overflow-y:auto;animation:up .3s cubic-bezier(.2,.9,.3,1)}
+    padding:16px 16px 24px;max-height:90vh;overflow-y:auto;animation:up .3s cubic-bezier(.2,.9,.3,1);
+    will-change:transform}
   @media(min-width:560px){.sheet{border-radius:26px;margin-bottom:auto;margin-top:auto}
     .scrim{align-items:center}}
   @keyframes up{from{transform:translateY(36px);opacity:.5}to{transform:none;opacity:1}}
-  .sheet .grab{width:40px;height:4.5px;border-radius:99px;background:var(--edge);margin:0 auto 13px}
+  /* The visual pill has a generous touch target so the sheet can actually be dragged down on mobile. */
+  .sheet .grab{height:28px;width:100%;margin:-8px 0 5px;display:flex;align-items:center;justify-content:center;
+    touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+  .sheet .grab::before{content:"";display:block;width:40px;height:4.5px;border-radius:99px;background:var(--edge);
+    transition:background .15s,transform .15s}
+  .sheet .grab:active{cursor:grabbing}
+  .sheet.dragging{animation:none;transition:none}
+  .sheet.dragging .grab::before{background:#b8d6e9;transform:scaleX(1.08)}
+  .sheet.snapback{transition:transform .22s cubic-bezier(.2,.85,.25,1)}
+  .sheet.closing{animation:none;transition:transform .22s cubic-bezier(.2,.8,.25,1),opacity .22s ease;opacity:.35}
   .sheet h3{font-size:17px;margin-bottom:12px}
 
   /* pick list in match modal */
@@ -378,6 +388,21 @@
   .gtype-chip:active{background:#e4f1fa}
   @media(hover:hover){.gtype-chip:hover{border-color:var(--glacier)}}
   .gtype-chip .gtype-caret{color:var(--muted);font-size:11px}
+
+  /* ===== queue fairness + batch court controls ===== */
+  .fairness-bar{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 0}
+  .fairness-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 9px;border-radius:11px;
+    border:1px solid #d7e8f4;background:rgba(255,255,255,.82);color:var(--deep);font-size:11.5px;font-weight:700;
+    box-shadow:0 2px 7px rgba(13,42,68,.05)}
+  .fairness-pill .fair-label{color:var(--muted);font-weight:600}
+  .fairness-pill .fair-dot{width:7px;height:7px;border-radius:50%;background:var(--aurora-a);box-shadow:0 0 5px rgba(79,224,189,.75)}
+  .court-tools{display:flex;gap:6px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+  .rest-one-btn{min-width:40px;padding:5px 7px!important;font-size:10.5px!important;line-height:1.1}
+  .batch-list{display:flex;flex-direction:column;gap:9px;margin-top:10px}
+  .batch-plan{padding:11px;border-radius:15px;background:linear-gradient(180deg,#ffffff,#f7fbfe);border:1px solid var(--edge)}
+  .batch-plan-head{display:flex;align-items:center;justify-content:space-between;gap:7px;margin-bottom:8px}
+  .batch-plan-head b{font-size:13.5px;color:var(--deep)}
+  .batch-skip{padding:9px 10px;border-radius:12px;background:#fff8f4;border:1px solid #ffe2d8;color:#a85140;font-size:12px}
 </style>
 </head>
 <body>
@@ -403,10 +428,14 @@
       <span class="count" id="qCount"></span>
     </div>
     <div class="qstrip" id="queueStrip"></div>
+    <div class="fairness-bar" id="fairnessBar"></div>
 
     <div class="sec-title" style="margin-top:14px">
       <h2>สนาม</h2>
-      <button class="btn mini ghost" onclick="openCourtSetup()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg> ตั้งค่าสนาม</button>
+      <div class="court-tools">
+        <button class="btn mini" onclick="openFillAllCourts()">⚡ จัดทุกสนามว่าง</button>
+        <button class="btn mini ghost" onclick="openCourtSetup()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg> ตั้งค่าสนาม</button>
+      </div>
     </div>
     <div class="courts-grid" id="courtsGrid"></div>
   </section>
@@ -434,6 +463,7 @@
     <div class="sec-title" style="margin-top:18px">
       <h2>เพิ่มจากรายชื่อก๊วน</h2>
     </div>
+    <div class="muted" style="font-size:12px;margin:-5px 0 10px">คนที่เข้าระหว่างวันจะเริ่มที่จำนวนเกมต่ำสุดของคิว เพื่อไม่แซงคนที่รออยู่</div>
     <input id="sessionSearch" placeholder="ค้นหาชื่อผู้เล่น" oninput="renderSession()" style="margin-bottom:10px">
     <div class="plist" id="sessionRosterList"></div>
   </section>
@@ -479,7 +509,7 @@
 
 <!-- ===== MODALS ===== -->
 <div class="scrim" id="scrim">
-  <div class="sheet" id="sheet"><div class="grab"></div><div id="sheetContent"></div></div>
+  <div class="sheet" id="sheet"><div class="grab" role="button" tabindex="0" aria-label="ลากลงเพื่อปิดหน้าต่าง"></div><div id="sheetContent"></div></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -553,14 +583,14 @@ function penguinArt(s){
 const PERKS = ['เล่นหน้าดี','เล่นหลังดี','ตบหนัก','วางลูกดี','วิ่งไว','เกมรับดี','สมาธิดี'];
 /* Game styles the user can pick per court. 'auto' keeps the default balanced matchmaking. */
 const GAME_TYPES = {
-  auto:   {label:'จับคู่อัตโนมัติ', desc:'จัดให้ฝีมือสองฝั่งสมดุลตามคิว', icon:'zap'},
+  auto:   {label:'จับคู่อัตโนมัติ', desc:'สุ่มจากคนที่ถึงคิว พร้อมบาลานซ์ฝีมือ', icon:'zap'},
   control:{label:'เกมคุม',          desc:'ฝั่งละ 1 มือแรง (4–5) + 1 มือเบา (1–3)', icon:'users'},
   heavy:  {label:'เกมหนัก',         desc:'มือแรงทั้งหมด (ฝีมือ 4–5)', icon:'shuttle'},
   light:  {label:'เกมเบา',          desc:'มือเบาทั้งหมด (ฝีมือ 1–3)', icon:'fish'}
 };
 const VALID_STATUSES = new Set(['wait','rest','done']);
 const store = {
-  schemaVersion: 3,
+  schemaVersion: 5,
   players: [],
   courts: [],
   matches: [],
@@ -574,10 +604,9 @@ const store = {
   deletedCourts: {},
   deletedMatches: {}
 };
-let editingId=null, matchDraft=null;
+let editingId=null, matchDraft=null, batchDraft=null;
 let cloudPushTimer=null, dbRef=null, groupCode=null, cloudUser=null;
 let cloudAvailable=false, authObserverAttached=false, connectionToken=0, suppressCloudWrite=false, forceGroupSheet=false, pendingGroupSwitch=null;
-const MATCH_CANDIDATE_WINDOW=8;
 
 /* ---------------- safe values ---------------- */
 function safeText(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -620,7 +649,7 @@ function sid(){return randomId('s');}
 function makeCourt(label,at=Date.now()){return {id:cid(),label:cleanText(label,'1',50),gameType:'auto',updatedAt:at};}
 function newSessionState(){
   const now=Date.now();
-  return {id:sid(),startedAt:now,seed:Math.random().toString(36).slice(2),updatedAt:now};
+  return {id:sid(),startedAt:now,seed:Math.random().toString(36).slice(2),completedMatches:0,updatedAt:now};
 }
 function hashText(text){
   let h=2166136261;
@@ -654,7 +683,7 @@ function readGroupCache(code){
   }catch(_){return null;}
 }
 function normalizeStore(){
-  store.schemaVersion=3;
+  store.schemaVersion=5;
   store.deletedPlayers=normalizeTombstones(store.deletedPlayers);
   store.deletedCourts=normalizeTombstones(store.deletedCourts);
   store.deletedMatches=normalizeTombstones(store.deletedMatches);
@@ -668,6 +697,7 @@ function normalizeStore(){
   store.session.startedAt=Number.isFinite(store.session.startedAt)?store.session.startedAt:Date.now();
   if(typeof store.session.seed!=='string'||!store.session.seed)store.session.seed=hashText(store.session.id).toString(36);
   store.session.updatedAt=Number.isFinite(store.session.updatedAt)?store.session.updatedAt:store.session.startedAt;
+  store.session.completedMatches=Math.max(0,Math.floor(Number(store.session.completedMatches)||0));
 
   const playerIds=new Set();
   store.players=asRecords(store.players).map((raw,index)=>{
@@ -681,6 +711,11 @@ function normalizeStore(){
     p.comment=cleanText(p.comment,'',500);
     p.perks=uniqueStrings(p.perks).filter(k=>PERKS.includes(k));
     p.status=VALID_STATUSES.has(p.status)?p.status:'wait';
+    p.restMode=p.status==='rest'?(p.restMode==='one'?'one':'manual'):'none';
+    p.restUntilMatchCount=p.restMode==='one'?Math.max(0,Math.floor(Number(p.restUntilMatchCount)||0)):0;
+    // A one-game rest remembers whether this player had already completed the round.
+    // Older saved data defaults safely to returning to the waiting queue.
+    p.restReturnStatus=p.restMode==='one'&&p.restReturnStatus==='done'?'done':'wait';
     p.exempt=!!p.exempt;
     p.inSession=typeof p.inSession==='boolean'?p.inSession:false;
     p.gamesPlayed=Math.max(0,Math.floor(Number(p.gamesPlayed)||0));
@@ -776,6 +811,7 @@ function normalizeStore(){
       p.inSession=true;
       p.sessionId=store.session.id;
       if(p.status==='rest')p.status='wait';
+      p.restMode='none';p.restUntilMatchCount=0;
     }
     if(p.inSession&&!p.sessionId)p.sessionId=store.session.id;
   });
@@ -833,7 +869,7 @@ function mergeStores(remote,local){
   const sessionChanged=String(rs.id||'')!==String(ls.id||'');
   const roundSource=sessionChanged?(remoteSessionWins?r:l):((Number(r.roundUpdatedAt)||0)>=(Number(l.roundUpdatedAt)||0)?r:l);
   return {
-    schemaVersion:3,
+    schemaVersion:5,
     players,courts,matches,history,
     session,
     round:Math.max(1,Math.floor(Number(roundSource.round)||1)),
@@ -920,7 +956,7 @@ function attachCloudValueHandler(ref,code,token){
       replaceStore(merged);
       render('cloud');
       suppressCloudWrite=false;
-      const repaired=remote.schemaVersion!==3
+      const repaired=remote.schemaVersion!==5
         ||JSON.stringify(merged)!==JSON.stringify(remoteCanonical)
         ||JSON.stringify(store)!==before;
       if(repaired)pushToCloud(true);
@@ -946,7 +982,7 @@ async function attachGroupRef(code){
       if(token!==connectionToken||code!==groupCode)return;
       if(legacySnapshot.val()){
         existingSnapshot=legacySnapshot.val();
-        await ref.transaction(current=>current||{...existingSnapshot,schemaVersion:3});
+        await ref.transaction(current=>current||{...existingSnapshot,schemaVersion:5});
       }
     }
   }catch(e){
@@ -1019,6 +1055,7 @@ const playingIds=()=>store.matches.flatMap(m=>[
 const gamesOf=p=>Number.isFinite(p?.gamesPlayed)?p.gamesPlayed:0;
 const sessionGamesOf=p=>Number.isFinite(p?.sessionGames)?p.sessionGames:0;
 const sessionQueueOf=p=>Number.isFinite(p?.sessionQueueAt)?p.sessionQueueAt:0;
+const completedMatchesOfSession=()=>Math.max(0,Math.floor(Number(store.session?.completedMatches)||0));
 const sum=a=>(Array.isArray(a)?a:[]).reduce((t,p)=>t+(Number(p?.skill)||0),0);
 function matchPlayers(match){
   return {
@@ -1061,7 +1098,9 @@ function partnerMeta(player,interactive=false){
 }
 function currentSessionFloor(excludeIds=null){
   const excluded=new Set(Array.isArray(excludeIds)?excludeIds:(excludeIds?[excludeIds]:[]));
-  const active=store.players.filter(p=>!excluded.has(p.id)&&p.inSession&&p.status==='wait'&&!playerIsPriorityExempt(p));
+  // Include everyone still participating, even if they have already finished this round,
+  // so a player who joins late starts at the true session floor instead of jumping from 0.
+  const active=store.players.filter(p=>!excluded.has(p.id)&&p.inSession&&p.status!=='rest'&&!playerIsPriorityExempt(p));
   return active.length?Math.min(...active.map(sessionGamesOf)):0;
 }
 function repairPartnerLinks(){
@@ -1136,9 +1175,12 @@ function syncLockedPartnerSession(player,partner,at=Date.now()){
   const games=sameSession?Math.max(...unit.map(sessionGamesOf)):currentSessionFloor(unit.map(p=>p.id));
   const tie=Math.min(...unit.map(p=>Number(p.sessionTie)||sessionTieFor(p.id)));
   const status=unit.some(p=>p.status==='rest')?'rest':unit.every(p=>p.status==='done')?'done':'wait';
+  const restMode=status==='rest'&&unit.some(p=>p.restMode==='one')?'one':(status==='rest'?'manual':'none');
+  const restUntil=restMode==='one'?Math.max(...unit.map(p=>Number(p.restUntilMatchCount)||0),completedMatchesOfSession()+1):0;
+  const restReturnStatus=restMode==='one'&&unit.every(p=>p.restReturnStatus==='done')?'done':'wait';
   unit.forEach(p=>{
     p.inSession=true;p.sessionId=store.session.id;p.sessionGames=games;p.sessionTie=tie;
-    p.sessionQueueAt=at;p.status=status;touchPlayer(p,at);
+    p.sessionQueueAt=at;p.status=status;p.restMode=restMode;p.restUntilMatchCount=restUntil;p.restReturnStatus=restReturnStatus;touchPlayer(p,at);
   });
 }
 function togglePartnerLock(id){
@@ -1211,7 +1253,7 @@ function normalizeMatchSelection(ids,eligibleIds){
 function render(source='local'){
   normalizeStore();
   if(source==='local')markStoreChanged();
-  renderQueue();renderCourts();renderSession();renderPlayers();renderHistory();updateBadges();
+  renderQueue();renderFairness();renderCourts();renderSession();renderPlayers();renderHistory();updateBadges();
   const roundPill=document.getElementById('roundPill');if(roundPill)roundPill.textContent='รอบที่ '+store.round;
   save();
   if(!suppressCloudWrite&&source==='local')pushToCloud();
@@ -1233,6 +1275,24 @@ function renderQueue(){
     <span class="num">${i+1}</span>${safeText(p.name)}${p.exempt?icon('zap',12):''}
     <span style="color:var(--court);font-weight:800">${p.skill}</span>
     <span class="games">${sessionGamesOf(p)} เกมในเซสชัน</span></div>`).join('');
+}
+function renderFairness(){
+  const bar=document.getElementById('fairnessBar');if(!bar)return;
+  const waiting=queueList();
+  const participants=store.players.filter(p=>p.inSession&&p.status!=='rest'&&!p.exempt);
+  const oneGameRest=store.players.filter(p=>p.inSession&&p.status==='rest'&&p.restMode==='one');
+  if(!participants.length){
+    bar.innerHTML='<span class="fairness-pill"><span class="fair-label">สถานะคิว</span> ยังไม่มีผู้เล่นพร้อมเล่น</span>';
+    return;
+  }
+  const low=Math.min(...participants.map(sessionGamesOf));
+  const high=Math.max(...participants.map(sessionGamesOf));
+  const longest=waiting.length?waiting.filter(p=>sessionGamesOf(p)===Math.min(...waiting.map(sessionGamesOf))).slice(0,2):[];
+  const longestNames=longest.map(p=>safeText(p.name)).join(', ');
+  const moreLongest=waiting.filter(p=>sessionGamesOf(p)===Math.min(...waiting.map(sessionGamesOf))).length-longest.length;
+  bar.innerHTML=`<span class="fairness-pill"><span class="fair-dot"></span><span class="fair-label">ความแฟร์</span> ${low===high?low+' เกมเท่ากัน':low+'–'+high+' เกม'}</span>
+    ${longest.length?`<span class="fairness-pill"><span class="fair-label">รอนานสุด</span> ${longestNames}${moreLongest>0?' +'+moreLongest:''}</span>`:''}
+    ${oneGameRest.length?`<span class="fairness-pill"><span class="fair-label">พัก 1 เกม</span> ${oneGameRest.length} คน</span>`:''}`;
 }
 function emptyCourtMarkup(c){
   const gt=courtGameType(c);
@@ -1271,7 +1331,7 @@ function renderCourts(){
 }
 function sessionStatus(p,playing){
   if(playing.has(p.id))return ['กำลังเล่น','s-play'];
-  if(p.status==='rest')return ['พัก','s-rest'];
+  if(p.status==='rest')return [p.restMode==='one'?'พัก 1 เกม':'พัก','s-rest'];
   if(p.status==='done')return ['เล่นแล้วรอบนี้','s-done'];
   return ['รอคิว','s-wait'];
 }
@@ -1292,8 +1352,9 @@ function renderSession(){
   });
   activeList.innerHTML=sortedActive.length?sortedActive.map(p=>{
     const [st,cls]=sessionStatus(p,playing);
-    const actionTitle=p.status==='done'?'กลับเข้าคิว':p.status==='rest'?'กลับเข้าคิว':'พัก';
+    const actionTitle=p.status==='done'?'กลับเข้าคิว':p.status==='rest'?'กลับเข้าคิว':'พักจนกว่าจะกดกลับ';
     const actionIcon=(p.status==='done'||p.status==='rest')?icon('play',14):icon('pause',14);
+    const oneRestButton=!playing.has(p.id)&&p.status==='wait'?`<button class="btn mini ghost rest-one-btn" title="พัก 1 เกม" onclick='restOneGame(${jsArg(p.id)})'>พัก 1 เกม</button>`:'';
     return `<div class="pcard">
       <div class="avatar">${penguinSVG(scarfFor(p.name),38)}</div>
       <div class="body">
@@ -1303,6 +1364,7 @@ function renderSession(){
         ${partnerMeta(p,true)}
       </div>
       <div class="acts">
+        ${oneRestButton}
         <button class="icon-btn" title="${actionTitle}" onclick='toggleRest(${jsArg(p.id)})'>${actionIcon}</button>
         <button class="btn mini warn" onclick='removeFromSession(${jsArg(p.id)})'>นำออก</button>
       </div></div>`;
@@ -1335,7 +1397,7 @@ function renderPlayers(){
     let st,cls;
     if(!p.inSession){st='ยังไม่เข้าร่วมวันนี้';cls='s-out';}
     else if(playing.has(p.id)){st='กำลังเล่น';cls='s-play';}
-    else if(p.status==='rest'){st='พัก';cls='s-rest';}
+    else if(p.status==='rest'){st=p.restMode==='one'?'พัก 1 เกม':'พัก';cls='s-rest';}
     else if(p.status==='done'){st='เล่นแล้ว';cls='s-done';}
     else{st='รอคิว';cls='s-wait';}
     const dim=(p.status==='done'||p.status==='rest')&&!playing.has(p.id);
@@ -1385,10 +1447,90 @@ function switchTab(t){
 }
 
 /* ---------------- modal ---------------- */
-function openSheet(html){document.getElementById('sheetContent').innerHTML=html;
-  document.getElementById('scrim').classList.add('on');}
-function closeSheet(){document.getElementById('scrim').classList.remove('on');editingId=null;matchDraft=null;}
-document.getElementById('scrim').addEventListener('click',e=>{if(e.target.id==='scrim'&&!forceGroupSheet)closeSheet();});
+const scrimEl=document.getElementById('scrim');
+const sheetEl=document.getElementById('sheet');
+const grabEl=sheetEl.querySelector('.grab');
+let sheetDrag=null;
+let sheetDismissTimer=null;
+
+function resetSheetDragState(){
+  if(sheetDismissTimer){clearTimeout(sheetDismissTimer);sheetDismissTimer=null;}
+  sheetDrag=null;
+  sheetEl.classList.remove('dragging','snapback','closing');
+  sheetEl.style.transform='';
+  sheetEl.style.opacity='';
+}
+function canDragSheet(){return !forceGroupSheet&&window.matchMedia('(max-width:559px)').matches;}
+function openSheet(html){
+  resetSheetDragState();
+  document.getElementById('sheetContent').innerHTML=html;
+  scrimEl.classList.add('on');
+}
+function closeSheet(){
+  resetSheetDragState();
+  scrimEl.classList.remove('on');editingId=null;matchDraft=null;batchDraft=null;
+}
+function dismissSheetByDrag(drag){
+  if(forceGroupSheet){return;}
+  const startY=drag?.startY||0;
+  const currentY=drag?.currentY||startY;
+  const visibleOffset=Math.max(0,currentY-startY);
+  sheetEl.classList.remove('dragging','snapback');
+  sheetEl.classList.add('closing');
+  sheetEl.style.transform=`translateY(${Math.max(visibleOffset,window.innerHeight*.72)}px)`;
+  sheetDismissTimer=setTimeout(closeSheet,240);
+}
+function snapSheetBack(){
+  sheetEl.classList.remove('dragging');
+  sheetEl.classList.add('snapback');
+  sheetEl.style.transform='translateY(0)';
+  setTimeout(()=>{
+    if(!sheetDrag){
+      sheetEl.classList.remove('snapback');
+      sheetEl.style.transform='';
+    }
+  },240);
+}
+
+grabEl.addEventListener('pointerdown',e=>{
+  if(!canDragSheet()||e.pointerType==='mouse'&&e.button!==0)return;
+  if(sheetEl.classList.contains('closing'))return;
+  sheetDrag={pointerId:e.pointerId,startY:e.clientY,currentY:e.clientY,lastY:e.clientY,lastAt:performance.now(),velocity:0,moved:false};
+  sheetEl.classList.remove('snapback');
+  sheetEl.classList.add('dragging');
+  try{grabEl.setPointerCapture(e.pointerId);}catch(_){}
+  e.preventDefault();
+});
+grabEl.addEventListener('pointermove',e=>{
+  if(!sheetDrag||e.pointerId!==sheetDrag.pointerId)return;
+  const now=performance.now();
+  const delta=e.clientY-sheetDrag.startY;
+  const dy=Math.max(0,delta);
+  const elapsed=Math.max(1,now-sheetDrag.lastAt);
+  sheetDrag.velocity=(e.clientY-sheetDrag.lastY)/elapsed;
+  sheetDrag.lastY=e.clientY;
+  sheetDrag.lastAt=now;
+  sheetDrag.currentY=e.clientY;
+  sheetDrag.moved=sheetDrag.moved||dy>3;
+  sheetEl.style.transform=`translateY(${dy}px)`;
+  e.preventDefault();
+});
+function finishSheetDrag(e,cancelled=false){
+  if(!sheetDrag||e.pointerId!==sheetDrag.pointerId)return;
+  const drag=sheetDrag;
+  sheetDrag=null;
+  try{grabEl.releasePointerCapture(e.pointerId);}catch(_){}
+  const dy=Math.max(0,e.clientY-drag.startY);
+  const fastDown=drag.velocity>.65&&dy>28;
+  if(!cancelled&&(dy>110||fastDown))dismissSheetByDrag(drag);
+  else snapSheetBack();
+}
+grabEl.addEventListener('pointerup',e=>finishSheetDrag(e));
+grabEl.addEventListener('pointercancel',e=>finishSheetDrag(e,true));
+grabEl.addEventListener('keydown',e=>{
+  if((e.key==='Enter'||e.key===' ')&&canDragSheet()){e.preventDefault();closeSheet();}
+});
+scrimEl.addEventListener('click',e=>{if(e.target.id==='scrim'&&!forceGroupSheet)closeSheet();});
 
 /* ---------------- player form ---------------- */
 let formPerks=new Set(), formSkill=3, formPartnerId='';
@@ -1451,7 +1593,7 @@ function savePlayer(){
   }else{
     const id=pid();
     player={id,name,skill:formSkill,comment,perks:[...formPerks].filter(k=>PERKS.includes(k)),
-      status:'wait',exempt:false,inSession:false,gamesPlayed:0,lastPlayedAt:0,
+      status:'wait',restMode:'none',restUntilMatchCount:0,restReturnStatus:'wait',exempt:false,inSession:false,gamesPlayed:0,lastPlayedAt:0,
       sessionId:null,sessionGames:0,sessionQueueAt:0,sessionTie:sessionTieFor(id),
       partnerId:null,partnerLocked:false,partnerUpdatedAt:changedAt,updatedAt:changedAt};
     store.players.push(player);
@@ -1511,10 +1653,10 @@ function addToSession(id){
   const games=sameSession?Math.max(...unit.map(sessionGamesOf)):currentSessionFloor(unit.map(p=>p.id));
   const tie=Math.min(...unit.map(p=>Number(p.sessionTie)||sessionTieFor(p.id)));
   unit.forEach(p=>{
-    p.inSession=true;p.status='wait';p.sessionGames=games;p.sessionId=store.session.id;
+    p.inSession=true;p.status='wait';p.restMode='none';p.restUntilMatchCount=0;p.restReturnStatus='wait';p.sessionGames=games;p.sessionId=store.session.id;
     p.sessionQueueAt=now;p.sessionTie=tie;touchPlayer(p,now);
   });
-  render();toast(unit.length===2?'เพิ่ม '+unit[0].name+' และ '+unit[1].name+' เข้าเซสชันแล้ว':'เพิ่ม '+player.name+' เข้าเซสชันแล้ว');
+  render();toast((unit.length===2?'เพิ่ม '+unit[0].name+' และ '+unit[1].name:'เพิ่ม '+player.name)+' เข้าเซสชันแล้ว · เริ่มที่ '+games+' เกม');
 }
 function removeFromSession(id){
   const player=byId(id);if(!player)return;
@@ -1522,7 +1664,7 @@ function removeFromSession(id){
   const playing=new Set(playingIds());
   if(unit.some(p=>playing.has(p.id))){toast('จบเกมก่อนนำผู้เล่นออกจากเซสชัน');return;}
   const now=Date.now();
-  unit.forEach(p=>{p.inSession=false;p.status='wait';touchPlayer(p,now);});
+  unit.forEach(p=>{p.inSession=false;p.status='wait';p.restMode='none';p.restUntilMatchCount=0;p.restReturnStatus='wait';touchPlayer(p,now);});
   render();toast(unit.length===2?'นำ '+unit[0].name+' และ '+unit[1].name+' ออกจากเซสชันแล้ว':'นำ '+player.name+' ออกจากเซสชันแล้ว');
 }
 function startNewSession(){
@@ -1564,10 +1706,18 @@ function confirmStartNewSession(){
   store.players.forEach(player=>{
     if(!player.inSession)return;
     player.sessionId=store.session.id;player.sessionGames=0;player.sessionQueueAt=now;
-    player.sessionTie=sessionTieFor(player.id);player.status='wait';touchPlayer(player,now);
+    player.sessionTie=sessionTieFor(player.id);player.status='wait';player.restMode='none';player.restUntilMatchCount=0;player.restReturnStatus='wait';touchPlayer(player,now);
   });
   resetPartnerLocksForSession(now);
   closeSheet();render();toast('เริ่มวันเล่นใหม่แล้ว');
+}
+function returnUnitToQueue(unit,changedAt,{alignToFloor=false}={}){
+  const games=alignToFloor?Math.max(...unit.map(sessionGamesOf),currentSessionFloor(unit.map(p=>p.id))):null;
+  unit.forEach(p=>{
+    p.status='wait';p.restMode='none';p.restUntilMatchCount=0;p.restReturnStatus='wait';
+    if(games!==null)p.sessionGames=games;
+    p.sessionQueueAt=changedAt;touchPlayer(p,changedAt);
+  });
 }
 function toggleRest(id){
   const player=byId(id);if(!player)return;
@@ -1577,17 +1727,39 @@ function toggleRest(id){
   if(unit.some(p=>playing.has(p.id))){toast(unit.length===2?'คู่ประจำกำลังเล่นอยู่':'คนนี้กำลังเล่นอยู่');return;}
   const changedAt=Date.now();
   if(unit.every(p=>p.status==='done')){
-    unit.forEach(p=>{p.status='wait';p.sessionQueueAt=changedAt;touchPlayer(p,changedAt);});
+    returnUnitToQueue(unit,changedAt);
     render();toast(unit.length===2?'คู่ประจำกลับเข้าคิวแล้ว':player.name+' กลับเข้าคิวแล้ว');return;
   }
   if(unit.every(p=>p.status==='rest')){
-    const games=Math.max(...unit.map(sessionGamesOf),currentSessionFloor(unit.map(p=>p.id)));
-    unit.forEach(p=>{p.status='wait';p.sessionGames=games;p.sessionQueueAt=changedAt;touchPlayer(p,changedAt);});
-  }else{
-    unit.forEach(p=>{p.status='rest';touchPlayer(p,changedAt);});
+    returnUnitToQueue(unit,changedAt,{alignToFloor:true});
+    render();toast(unit.length===2?'คู่ประจำกลับมาเล่นแล้ว':player.name+' กลับมาเล่น');return;
   }
-  render();
-  toast(unit.every(p=>p.status==='rest')?(unit.length===2?'คู่ประจำพักแล้ว':player.name+' พักแล้ว'):(unit.length===2?'คู่ประจำกลับมาเล่นแล้ว':player.name+' กลับมาเล่น'));
+  unit.forEach(p=>{p.status='rest';p.restMode='manual';p.restUntilMatchCount=0;p.restReturnStatus='wait';touchPlayer(p,changedAt);});
+  render();toast(unit.length===2?'คู่ประจำพักแล้ว':player.name+' พักแล้ว');
+}
+function restOneGame(id){
+  const player=byId(id);if(!player||!player.inSession)return;
+  const unit=partnerUnit(player);
+  const playing=new Set(playingIds());
+  if(unit.some(p=>playing.has(p.id))){toast(unit.length===2?'คู่ประจำกำลังเล่นอยู่':'คนนี้กำลังเล่นอยู่');return;}
+  if(!unit.every(p=>p.status==='wait')){
+    toast(unit.length===2?'พัก 1 เกมทำได้เฉพาะคู่ประจำที่กำลังรอคิว':'พัก 1 เกมทำได้เฉพาะคนที่กำลังรอคิว');return;
+  }
+  const changedAt=Date.now();
+  const until=completedMatchesOfSession()+1;
+  unit.forEach(p=>{p.status='rest';p.restMode='one';p.restUntilMatchCount=until;p.restReturnStatus='wait';touchPlayer(p,changedAt);});
+  render();toast(unit.length===2?'คู่ประจำพัก 1 เกมแล้ว':player.name+' พัก 1 เกมแล้ว');
+}
+function releaseOneGameRests(endedAt){
+  const completed=completedMatchesOfSession();
+  const released=store.players.filter(p=>p.inSession&&p.status==='rest'&&p.restMode==='one'&&Number(p.restUntilMatchCount)<=completed);
+  released.forEach(p=>{
+    const returnStatus=p.restReturnStatus==='done'?'done':'wait';
+    p.status=returnStatus;p.restMode='none';p.restUntilMatchCount=0;p.restReturnStatus='wait';
+    if(returnStatus==='wait')p.sessionQueueAt=endedAt;
+    touchPlayer(p,endedAt);
+  });
+  return released;
 }
 
 /* ---------------- exempt toggle (from match modal) ---------------- */
@@ -1604,21 +1776,58 @@ function toggleExempt(id){
 }
 
 /* ---------------- match building ---------------- */
-function pairKey(a,b){return a<b?a+'|'+b:b+'|'+a;}
-function repeatPenalty(a,b){
-  if(!Array.isArray(a)||!Array.isArray(b)||a.length!==2||b.length!==2)return 0;
-  const partners=new Set([pairKey(a[0].id,a[1].id),pairKey(b[0].id,b[1].id)]);
-  const opponents=new Set(a.flatMap(x=>b.map(y=>pairKey(x.id,y.id))));
-  let penalty=0;
-  [...store.history].slice(-12).reverse().forEach((h,age)=>{
-    if(!Array.isArray(h.side1Ids)||!Array.isArray(h.side2Ids)||h.side1Ids.length!==2||h.side2Ids.length!==2)return;
-    const weight=Math.max(1,4-Math.floor(age/3));
-    const oldPartners=[pairKey(h.side1Ids[0],h.side1Ids[1]),pairKey(h.side2Ids[0],h.side2Ids[1])];
-    const oldOpponents=h.side1Ids.flatMap(x=>h.side2Ids.map(y=>pairKey(x,y)));
-    oldPartners.forEach(k=>{if(partners.has(k))penalty+=3*weight;});
-    oldOpponents.forEach(k=>{if(opponents.has(k))penalty+=weight;});
-  });
-  return penalty;
+function chooseRandom(items){
+  if(!Array.isArray(items)||!items.length)return null;
+  return items[Math.floor(Math.random()*items.length)]||null;
+}
+/* Randomly choose an option, while giving the people who have waited longer
+   a modest advantage. This keeps the draw from becoming a fixed queue. */
+function chooseWeightedRandom(items,weightFor){
+  if(!Array.isArray(items)||!items.length)return null;
+  const weighted=items.map(item=>({item,weight:Math.max(0,Number(weightFor(item))||0)}));
+  const total=weighted.reduce((sum,row)=>sum+row.weight,0);
+  if(total<=0)return chooseRandom(items);
+  let cursor=Math.random()*total;
+  for(const row of weighted){
+    cursor-=row.weight;
+    if(cursor<=0)return row.item;
+  }
+  return weighted[weighted.length-1].item;
+}
+const skillOf=player=>Number(player?.skill)||0;
+function isStrongPlayer(player){return skillOf(player)>=4;}
+function isWeakPlayer(player){return skillOf(player)<=3;}
+function gameTypeTargets(type){
+  if(type==='heavy')return {strong:4,weak:0};
+  if(type==='light')return {strong:0,weak:4};
+  if(type==='control')return {strong:2,weak:2};
+  return null;
+}
+function countSkillBands(players){
+  return (Array.isArray(players)?players:[]).reduce((counts,player)=>{
+    if(isStrongPlayer(player))counts.strong++;
+    else if(isWeakPlayer(player))counts.weak++;
+    return counts;
+  },{strong:0,weak:0});
+}
+function selectionFitsGameType(players,type){
+  if(!Array.isArray(players)||players.length!==4)return false;
+  if(type==='auto'||!GAME_TYPES[type])return true;
+  const counts=countSkillBands(players);
+  if(type==='heavy')return counts.strong===4;
+  if(type==='light')return counts.weak===4;
+  return counts.strong===2&&counts.weak===2;
+}
+function teamFitsGameType(team,type){
+  if(!Array.isArray(team)||team.length!==2)return false;
+  if(type==='auto'||!GAME_TYPES[type])return true;
+  const counts=countSkillBands(team);
+  if(type==='heavy')return counts.strong===2;
+  if(type==='light')return counts.weak===2;
+  return counts.strong===1&&counts.weak===1;
+}
+function splitFitsGameType(a,b,type){
+  return teamFitsGameType(a,type)&&teamFitsGameType(b,type);
 }
 function splitRespectsPartnerLocks(a,b){
   const sideA=new Set((a||[]).map(p=>p.id));
@@ -1629,97 +1838,211 @@ function splitRespectsPartnerLocks(a,b){
     return !partner||!inMatch.has(partner.id)||sideA.has(player.id)===sideA.has(partner.id);
   });
 }
-function bestSplit(four){
-  if(!Array.isArray(four)||four.length!==4||four.some(p=>!p))return null;
+function bestSplit(four,gameType='auto'){
+  if(!selectionFitsGameType(four,gameType))return null;
   const [p,q,r,s]=four;
   const opts=[{a:[p,q],b:[r,s]},{a:[p,r],b:[q,s]},{a:[p,s],b:[q,r]}]
-    .filter(o=>splitRespectsPartnerLocks(o.a,o.b))
-    .map(o=>({...o,diff:Math.abs(sum(o.a)-sum(o.b)),repeat:repeatPenalty(o.a,o.b)}));
-  opts.sort((x,y)=>x.diff-y.diff||x.repeat-y.repeat);return opts[0]||null;
+    .filter(option=>splitRespectsPartnerLocks(option.a,option.b))
+    .filter(option=>splitFitsGameType(option.a,option.b,gameType))
+    .map(option=>({...option,diff:Math.abs(sum(option.a)-sum(option.b))}));
+  if(!opts.length)return null;
+  let bestDiff=opts[0].diff;
+  for(const option of opts)if(option.diff<bestDiff)bestDiff=option.diff;
+  // Equal-strength team splits are intentionally randomized. Repeated teammates
+  // can happen naturally, rather than being forced by a deterministic tiebreaker.
+  return chooseRandom(opts.filter(option=>option.diff===bestDiff));
 }
-function combinations(items,k,start=0,picked=[],out=[]){
-  if(picked.length===k){out.push([...picked]);return out;}
-  for(let i=start;i<=items.length-(k-picked.length);i++){
-    picked.push(items[i]);combinations(items,k,i+1,picked,out);picked.pop();
+function splitMatchesSelection(split,players,gameType='auto'){
+  if(!split||!Array.isArray(players)||players.length!==4||!Array.isArray(split.a)||!Array.isArray(split.b))return false;
+  if(split.a.length!==2||split.b.length!==2)return false;
+  const selected=new Set(players.map(player=>player?.id).filter(Boolean));
+  const splitPlayers=[...split.a,...split.b];
+  const splitIds=splitPlayers.map(player=>player?.id).filter(Boolean);
+  if(selected.size!==4||splitIds.length!==4||new Set(splitIds).size!==4)return false;
+  if(splitIds.some(id=>!selected.has(id)))return false;
+  return splitRespectsPartnerLocks(split.a,split.b)&&splitFitsGameType(split.a,split.b,gameType);
+}
+function shuffleCopy(items){
+  const out=[...(Array.isArray(items)?items:[])];
+  for(let i=out.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [out[i],out[j]]=[out[j],out[i]];
   }
   return out;
 }
+function buildMatchUnits(players,eligibleIds,type){
+  const sourceIds=new Set((Array.isArray(players)?players:[]).map(player=>player?.id).filter(Boolean));
+  const seen=new Set(),units=[];
+  for(const player of players||[]){
+    if(!player||seen.has(player.id)||!eligibleIds.has(player.id))continue;
+    const ids=selectionUnitIds(player.id,eligibleIds);
+    if(!ids.length||ids.some(id=>!sourceIds.has(id)))continue;
+    const members=ids.map(byId).filter(Boolean);
+    if(members.length!==ids.length)continue;
+    const counts=countSkillBands(members);
+    // A locked 4–5 pair (or 1–3 pair) can never form a legal control-game side,
+    // because a control game requires one strong and one light player per side.
+    if(type==='control'&&members.length===2&&(counts.strong!==1||counts.weak!==1)){
+      members.forEach(member=>seen.add(member.id));
+      continue;
+    }
+    if(type==='heavy'&&counts.strong!==members.length){members.forEach(member=>seen.add(member.id));continue;}
+    if(type==='light'&&counts.weak!==members.length){members.forEach(member=>seen.add(member.id));continue;}
+    members.forEach(member=>seen.add(member.id));
+    units.push({members,ids:members.map(member=>member.id),size:members.length,strong:counts.strong,weak:counts.weak});
+  }
+  return units;
+}
+function unitsForRequiredIds(units,requiredIds){
+  const required=new Set(requiredIds||[]);
+  if(!required.size)return [];
+  const picked=[];
+  const covered=new Set();
+  for(const unit of units){
+    if(unit.ids.some(id=>required.has(id))){
+      picked.push(unit);unit.ids.forEach(id=>covered.add(id));
+    }
+  }
+  return [...required].every(id=>covered.has(id))?picked:null;
+}
+function countsCanFit(counts,target){
+  return !target||(counts.strong<=target.strong&&counts.weak<=target.weak);
+}
+function countsAreComplete(counts,target){
+  return !target||(counts.strong===target.strong&&counts.weak===target.weak);
+}
+function addUnitCounts(counts,unit){return {strong:counts.strong+unit.strong,weak:counts.weak+unit.weak};}
+function randomUnitSelection(units,type,requiredIds){
+  const target=gameTypeTargets(type);
+  const requiredUnits=unitsForRequiredIds(units,requiredIds);
+  if(requiredUnits===null)return null;
+  const selectedUnits=[...(requiredUnits||[])];
+  const selectedIds=new Set(selectedUnits.flatMap(unit=>unit.ids));
+  const initial=selectedUnits.reduce((counts,unit)=>addUnitCounts(counts,unit),{strong:0,weak:0});
+  const initialSize=selectedUnits.reduce((total,unit)=>total+unit.size,0);
+  if(initialSize>4||!countsCanFit(initial,target))return null;
+  const remainingUnits=shuffleCopy(units.filter(unit=>!unit.ids.some(id=>selectedIds.has(id))));
+  let nodes=0;
+  const MAX_NODES=260;
+  function search(start,chosen,size,counts){
+    if(++nodes>MAX_NODES)return null;
+    if(size===4)return countsAreComplete(counts,target)?chosen.flatMap(unit=>unit.members):null;
+    const seatsLeft=4-size;
+    for(let index=start;index<remainingUnits.length;index++){
+      const unit=remainingUnits[index];
+      if(unit.size>seatsLeft)continue;
+      const nextCounts=addUnitCounts(counts,unit);
+      if(!countsCanFit(nextCounts,target))continue;
+      const result=search(index+1,[...chosen,unit],size+unit.size,nextCounts);
+      if(result)return result;
+    }
+    return null;
+  }
+  return search(0,selectedUnits,initialSize,initial);
+}
 function addPartnerUnits(items,eligibleIds){
   const output=[];const seen=new Set();
-  items.forEach(player=>{
-    if(!player||!eligibleIds.has(player.id))return;
-    selectionUnitIds(player.id,eligibleIds).forEach(id=>{
-      if(!seen.has(id)){seen.add(id);const found=byId(id);if(found)output.push(found);}
-    });
-  });
+  for(const player of items||[]){
+    if(!player||!eligibleIds.has(player.id))continue;
+    for(const id of selectionUnitIds(player.id,eligibleIds)){
+      if(seen.has(id))continue;
+      const found=byId(id);
+      if(found){seen.add(id);output.push(found);}
+    }
+  }
   return output.sort(fairCompare);
 }
-function autoMatchPlan(q){
-  const eligibleIds=new Set(q.map(p=>p.id));
-  const regular=q.filter(p=>!playerIsPriorityExempt(p)).sort(fairCompare);
-  const exempt=q.filter(p=>playerIsPriorityExempt(p)).sort(fairCompare);
-  let pool,mandatory;
-  if(regular.length>=4){
-    const cutoff=sessionGamesOf(regular[3]);
-    mandatory=regular.filter(p=>sessionGamesOf(p)<cutoff);
-    const tied=regular.filter(p=>sessionGamesOf(p)===cutoff);
-    const openSlots=Math.max(4-mandatory.length,MATCH_CANDIDATE_WINDOW-mandatory.length);
-    pool=[...mandatory,...tied.slice(0,openSlots)];
-  }else{
-    mandatory=[...regular];
-    const exemptSlots=Math.max(4-regular.length,MATCH_CANDIDATE_WINDOW-regular.length);
-    pool=[...regular,...exempt.slice(0,exemptSlots)];
+function fairnessRequirementIds(players,slots,eligibleIds){
+  const ordered=[...(Array.isArray(players)?players:[])].sort(fairCompare);
+  const required=[];
+  let index=0;
+  while(index<ordered.length){
+    const games=sessionGamesOf(ordered[index]);
+    let end=index+1;
+    while(end<ordered.length&&sessionGamesOf(ordered[end])===games)end++;
+    const tier=ordered.slice(index,end);
+    // If a priority tier fills the remaining seats exactly, lock all of it in.
+    // When the tier is larger than the remaining seats, leave that tier random.
+    if(required.length+tier.length>slots)break;
+    required.push(...tier);
+    if(required.length===slots)break;
+    index=end;
   }
-  pool=addPartnerUnits(pool,eligibleIds);
-  mandatory=addPartnerUnits(mandatory,eligibleIds);
-  const required=mandatory.length<=4?new Set(mandatory.map(p=>p.id)):new Set();
-  const rank=new Map(pool.map((p,i)=>[p.id,i]));
-  const options=combinations(pool,4)
-    .filter(four=>[...required].every(id=>four.some(p=>p.id===id)))
-    .filter(four=>matchSelectionRespectsPartners(four.map(p=>p.id),eligibleIds))
-    .map(four=>{
-      const split=bestSplit(four);if(!split)return null;
-      const waitCost=four.reduce((t,p)=>t+(rank.get(p.id)||0),0);
-      return {four,split,waitCost,score:waitCost*3+split.diff*8+Math.min(split.repeat,6)};
-    }).filter(Boolean)
-    .sort((a,b)=>a.score-b.score||a.split.diff-b.split.diff||a.waitCost-b.waitCost||a.split.repeat-b.split.repeat);
-  return options[0]||null;
+  const expanded=addPartnerUnits(required,eligibleIds);
+  return expanded.length<=slots?new Set(expanded.map(player=>player.id)):new Set();
 }
-/* Build a four for a chosen game style. 'auto' defers to the balanced planner above.
-   Special styles walk the WHOLE session queue in priority order (fewest games, longest
-   wait) and take the first players that fit the style's skill bands — queue order wins
-   over balance, so it doesn't optimise inside an 8-player window. Locked partners stay
-   together; bestSplit only arranges the four we picked. Null if the roster can't fill it. */
-const skillOf=p=>Number(p?.skill)||0;
-function typedMatchPlan(q,type){
-  if(type==='auto'||!GAME_TYPES[type])return autoMatchPlan(q);
-  const strong=p=>skillOf(p)>=4;      // 4–5
-  const weak=p=>skillOf(p)<=3;        // 1–3
-  const capStrong=type==='control'?2:(type==='heavy'?4:0);
-  const capWeak=type==='control'?2:(type==='light'?4:0);
-  const eligibleIds=new Set(q.map(p=>p.id));
-  const chosen=[],picked=new Set();
-  let nStrong=0,nWeak=0;
-  for(const p of q){
-    if(chosen.length>=4)break;
-    if(picked.has(p.id))continue;
-    // A locked partner comes as an inseparable unit; both must fit or we skip the pair.
-    const unit=selectionUnitIds(p.id,eligibleIds).map(byId).filter(Boolean);
-    if(!unit.length||chosen.length+unit.length>4)continue;
-    let addS=0,addW=0,ok=true;
-    for(const m of unit){
-      if(type==='heavy'){if(!strong(m)){ok=false;break;}addS++;}
-      else if(type==='light'){if(!weak(m)){ok=false;break;}addW++;}
-      else strong(m)?addS++:addW++; // control: strong 4–5 vs weak 1–3
+function fairnessVector(four){return [...four].map(sessionGamesOf).sort((a,b)=>a-b);}
+function compareFairnessVectors(left,right){
+  const a=fairnessVector(left),b=fairnessVector(right);
+  for(let index=0;index<a.length;index++){
+    if(a[index]!==b[index])return a[index]-b[index];
+  }
+  return 0;
+}
+function waitRankCost(four,rank){
+  return four.reduce((total,player)=>total+(rank.get(player.id)||0),0);
+}
+function pickBestMatchPlan(options){
+  if(!options.length)return null;
+  let best=options[0];
+  for(const option of options){
+    if(compareFairnessVectors(option.four,best.four)<0)best=option;
+  }
+  const fairest=options.filter(option=>compareFairnessVectors(option.four,best.four)===0);
+  let bestDiff=fairest[0].split.diff;
+  for(const option of fairest)if(option.split.diff<bestDiff)bestDiff=option.split.diff;
+  const balanced=fairest.filter(option=>option.split.diff<=bestDiff+1);
+  let maxWaitCost=0;
+  for(const option of balanced)if(option.waitCost>maxWaitCost)maxWaitCost=option.waitCost;
+  return chooseWeightedRandom(balanced,option=>1+(maxWaitCost-option.waitCost)/Math.max(1,maxWaitCost));
+}
+function sampledMatchPlan(q,type='auto'){
+  const gameType=GAME_TYPES[type]?type:'auto';
+  const eligibleIds=new Set((q||[]).map(player=>player.id));
+  if(eligibleIds.size<4)return null;
+  let pool=[...(q||[])];
+  let requiredIds=new Set();
+  if(gameType==='auto'){
+    const regular=pool.filter(player=>!playerIsPriorityExempt(player));
+    if(regular.length>=4){
+      pool=regular;
+      requiredIds=fairnessRequirementIds(pool,4,eligibleIds);
+    }else{
+      // Priority-exempt players only fill seats that regular players cannot fill.
+      requiredIds=new Set(regular.map(player=>player.id));
     }
-    if(!ok||nStrong+addS>capStrong||nWeak+addW>capWeak)continue;
-    unit.forEach(m=>{picked.add(m.id);chosen.push(m);});
-    nStrong+=addS;nWeak+=addW;
+  }else{
+    // Special game styles still look across the whole session; the skill rule is
+    // enforced later, before a plan can be shown or started.
+    requiredIds=fairnessRequirementIds(pool,4,eligibleIds);
   }
-  if(chosen.length!==4)return null;
-  const split=bestSplit(chosen);
-  return split?{four:chosen,split}:null;
+  const units=buildMatchUnits(pool,eligibleIds,gameType);
+  const rank=new Map([...(q||[])].sort(fairCompare).map((player,index)=>[player.id,index]));
+  const options=[];
+  const seen=new Set();
+  const SAMPLE_GOAL=Math.min(720,Math.max(180,units.length*36));
+  const ATTEMPT_LIMIT=Math.min(2400,Math.max(500,SAMPLE_GOAL*3));
+  function collect(requirements){
+    for(let attempt=0;attempt<ATTEMPT_LIMIT&&options.length<SAMPLE_GOAL;attempt++){
+      const four=randomUnitSelection(units,gameType,requirements);
+      if(!four||four.length!==4||!selectionFitsGameType(four,gameType))continue;
+      if(!matchSelectionRespectsPartners(four.map(player=>player.id),eligibleIds))continue;
+      const split=bestSplit(four,gameType);
+      if(!split)continue;
+      const key=[...four].map(player=>player.id).sort().join('|')+' / '+[split.a.map(player=>player.id).sort().join('|'),split.b.map(player=>player.id).sort().join('|')].sort().join(' vs ');
+      if(seen.has(key))continue;
+      seen.add(key);
+      options.push({four,split,waitCost:waitRankCost(four,rank)});
+    }
+  }
+  collect(requiredIds);
+  // A locked partner pair can make a strict mandatory group impossible in a special
+  // game type. In that rare case, preserve a playable match instead of dead-ending.
+  if(!options.length&&requiredIds.size)collect(new Set());
+  return pickBestMatchPlan(options);
 }
+function autoMatchPlan(q){return sampledMatchPlan(q,'auto');}
+function typedMatchPlan(q,type){return sampledMatchPlan(q,GAME_TYPES[type]?type:'auto');}
 function courtGameType(court){return court&&GAME_TYPES[court.gameType]?court.gameType:'auto';}
 function openMatch(courtId){
   const court=store.courts.find(c=>c.id===courtId);
@@ -1729,6 +2052,100 @@ function openMatch(courtId){
   if(q.length<4){toast('ต้องมีผู้เล่นในคิวอย่างน้อย 4 คน');return;}
   // Use the court's saved style — no need to pick one every time.
   startTypedMatch(courtId,courtGameType(court));
+}
+function matchPlanKey(plan){
+  const selected=[...(plan?.four||[])].map(p=>p.id).sort().join('|');
+  const split=plan?.split;
+  if(!split)return selected;
+  const sides=[split.a.map(p=>p.id).sort().join('|'),split.b.map(p=>p.id).sort().join('|')].sort().join(' vs ');
+  return selected+' / '+sides;
+}
+function rerollMatchDraft(){
+  if(!matchDraft)return;
+  const q=queueList();
+  const type=GAME_TYPES[matchDraft.gameType]?matchDraft.gameType:'auto';
+  const before=matchPlanKey({four:(matchDraft.selected||[]).map(byId).filter(Boolean),split:matchDraft.split});
+  let chosen=null;
+  for(let attempt=0;attempt<16;attempt++){
+    const plan=typedMatchPlan(q,type);if(!plan)break;
+    if(matchPlanKey(plan)!==before){chosen=plan;break;}
+  }
+  if(!chosen){toast('ไม่มีคู่ทางเลือกอื่นในคิวตอนนี้');return;}
+  matchDraft.selected=chosen.four.map(player=>player.id);matchDraft.split=chosen.split;
+  openMatchDraft();toast('สุ่มคู่ใหม่แล้ว');
+}
+function buildFillAllCourtsPlan(){
+  const empty=store.courts.filter(c=>!store.matches.some(m=>m.courtId===c.id));
+  let available=queueList();
+  const plans=[],skipped=[];
+  empty.forEach(court=>{
+    if(available.length<4){skipped.push({court,label:court.label,reason:'ผู้เล่นในคิวไม่พอ'});return;}
+    const type=courtGameType(court);
+    const plan=typedMatchPlan(available,type);
+    if(!plan){
+      const reason={heavy:'มือแรง (4–5) ไม่พอ',light:'มือเบา (1–3) ไม่พอ',control:'มือแรง/มือเบาสำหรับเกมคุมไม่พอ'}[type]||'จัดผู้เล่นลงสนามไม่ได้';
+      skipped.push({court,label:court.label,reason});return;
+    }
+    plans.push({courtId:court.id,courtLabel:court.label,gameType:type,selected:plan.four.map(p=>p.id),split:plan.split});
+    const picked=new Set(plan.four.map(p=>p.id));
+    available=available.filter(p=>!picked.has(p.id));
+  });
+  return {plans,skipped,emptyCount:empty.length};
+}
+function openFillAllCourts(){
+  const draft=buildFillAllCourtsPlan();
+  if(!draft.emptyCount){toast('ทุกสนามกำลังเล่นอยู่แล้ว');return;}
+  if(!draft.plans.length){toast('ยังจัดผู้เล่นลงสนามไม่ได้ — ต้องมีอย่างน้อย 4 คนในคิว');return;}
+  batchDraft=draft;openBatchMatchDraft();
+}
+function rerollBatchDraft(){
+  const before=(batchDraft?.plans||[]).map(matchPlanKey).join(' || ');
+  let next=null;
+  for(let attempt=0;attempt<16;attempt++){
+    const candidate=buildFillAllCourtsPlan();
+    if(!candidate.plans.length)break;
+    if(candidate.plans.map(matchPlanKey).join(' || ')!==before){next=candidate;break;}
+  }
+  if(!next){toast('ไม่มีชุดทางเลือกอื่นในคิวตอนนี้');return;}
+  batchDraft=next;openBatchMatchDraft();toast('สุ่มทุกสนามใหม่แล้ว');
+}
+function openBatchMatchDraft(){
+  if(!batchDraft?.plans?.length){closeSheet();return;}
+  const cards=batchDraft.plans.map(plan=>{
+    const side1=plan.split?.a||[],side2=plan.split?.b||[];
+    const gt=GAME_TYPES[plan.gameType]||GAME_TYPES.auto;
+    return `<div class="batch-plan"><div class="batch-plan-head"><b>สนาม ${safeText(plan.courtLabel)}</b><span class="tag" style="margin:0;display:inline-flex;align-items:center;gap:4px">${icon(gt.icon,12)} ${safeText(gt.label)}</span></div>
+      <div class="match-confirm" style="margin:0"><div class="team"><div class="side-label">ฝั่ง A · รวม ${sum(side1)}</div><div class="names">${side1.map(p=>safeText(p.name)).join('<br>')}</div></div>
+      <div class="versus"><span>VS</span></div><div class="team"><div class="side-label">ฝั่ง B · รวม ${sum(side2)}</div><div class="names">${side2.map(p=>safeText(p.name)).join('<br>')}</div></div></div></div>`;
+  }).join('');
+  const skipped=batchDraft.skipped?.length?`<div class="batch-list">${batchDraft.skipped.map(item=>`<div class="batch-skip">สนาม ${safeText(item.label)}: ${safeText(item.reason)}</div>`).join('')}</div>`:'';
+  openSheet(`<h3>จัดทุกสนามว่าง</h3>
+    <p class="muted" style="font-size:13px;margin:-4px 0 8px">ระบบแบ่งผู้เล่นไม่ให้ซ้ำกัน และใช้รูปแบบเกมที่บันทึกไว้ของแต่ละสนาม</p>
+    <div class="batch-list">${cards}</div>${skipped}
+    <div class="confirm-actions"><button class="btn ghost" onclick="rerollBatchDraft()">↻ สุ่มใหม่</button>
+      <button class="btn" onclick="confirmBatchMatches()">เริ่ม ${batchDraft.plans.length} สนาม →</button></div>`);
+}
+function confirmBatchMatches(){
+  const draft=batchDraft;
+  if(!draft?.plans?.length){closeSheet();return;}
+  const eligible=new Set(queueList().map(p=>p.id));
+  const courts=new Set(),picked=new Set(),resolved=[];
+  for(const plan of draft.plans){
+    const gameType=GAME_TYPES[plan.gameType]?plan.gameType:'auto';
+    const players=Array.isArray(plan.selected)?plan.selected.map(byId).filter(Boolean):[];
+    const split=splitMatchesSelection(plan.split,players,gameType)?plan.split:null;
+    if(!store.courts.some(court=>court.id===plan.courtId)||store.matches.some(match=>match.courtId===plan.courtId)||courts.has(plan.courtId)||!Array.isArray(plan.selected)||plan.selected.length!==4||players.length!==4||plan.selected.some(id=>!eligible.has(id)||picked.has(id))||!matchSelectionRespectsPartners(plan.selected,eligible)||!selectionFitsGameType(players,gameType)||!split){
+      toast('คิว สนาม หรือกติกาเปลี่ยนแล้ว กรุณาจัดทุกสนามใหม่');openFillAllCourts();return;
+    }
+    split.diff=Math.abs(sum(split.a)-sum(split.b));
+    courts.add(plan.courtId);plan.selected.forEach(id=>picked.add(id));resolved.push({plan,split});
+  }
+  const now=Date.now();
+  resolved.forEach(({plan,split})=>{
+    store.matches.push({id:mid(),courtId:plan.courtId,side1:split.a.map(p=>p.id),side2:split.b.map(p=>p.id),gameType:GAME_TYPES[plan.gameType]?plan.gameType:'auto',sessionId:store.session.id,startedAt:now,updatedAt:now});
+  });
+  const count=resolved.length;
+  closeSheet();render();toast('เริ่มเกม '+count+' สนามแล้ว');
 }
 function openGameTypeChooser(courtId,label){
   const court=store.courts.find(c=>c.id===courtId);
@@ -1763,7 +2180,7 @@ function startTypedMatch(courtId,type){
     }[gameType]||'ยังจัดผู้เล่นลงสนามไม่ได้ — ตรวจสอบคู่ประจำหรือสถานะพัก');
     return;
   }
-  matchDraft={courtId,courtLabel:court.label,selected:plan.four.map(p=>p.id),gameType};
+  matchDraft={courtId,courtLabel:court.label,selected:plan.four.map(player=>player.id),split:plan.split,gameType};
   openMatchDraft();
 }
 function openMatchDraft(){
@@ -1776,24 +2193,30 @@ function openMatchDraft(){
   matchDraft.courtLabel=court.label;
   const selected=matchDraft.selected;
   const chosen=selected.map(byId).filter(Boolean);
+  const gt=matchDraft.gameType&&GAME_TYPES[matchDraft.gameType]?matchDraft.gameType:'auto';
   let preview='';
   if(chosen.length===4){
-    const split=bestSplit(chosen);
+    const split=splitMatchesSelection(matchDraft.split,chosen,gt)?matchDraft.split:bestSplit(chosen,gt);
     if(split){
+      split.diff=Math.abs(sum(split.a)-sum(split.b));
       matchDraft.split=split;
-      preview=`<div class="balance-note"><span>ฝั่ง A <b>${sum(split.a)}</b> · ${split.a.map(p=>safeText(p.name)).join(', ')}</span></div>
-        <div class="balance-note"><span>ฝั่ง B <b>${sum(split.b)}</b> · ${split.b.map(p=>safeText(p.name)).join(', ')}</span></div>
+      preview=`<div class="balance-note"><span>ฝั่ง A <b>${sum(split.a)}</b> · ${split.a.map(player=>safeText(player.name)).join(', ')}</span></div>
+        <div class="balance-note"><span>ฝั่ง B <b>${sum(split.b)}</b> · ${split.b.map(player=>safeText(player.name)).join(', ')}</span></div>
         <div class="swaphint">ต่างกัน ${split.diff} แต้ม · คู่ประจำที่เลือก “เล่นคู่กัน” จะอยู่ฝั่งเดียวกันเสมอ</div>`;
-    }else preview=`<div class="swaphint">รายชื่อที่เลือกแยกคู่ประจำอยู่ — ปรับรายชื่อใหม่</div>`;
+    }else{
+      matchDraft.split=null;
+      const message=gt==='control'?'เกมคุมต้องมีฝั่งละ 1 มือแรง และ 1 มือเบา':'รายชื่อที่เลือกไม่ตรงกติกาของรูปแบบเกมนี้';
+      preview=`<div class="swaphint">${message} — ปรับรายชื่อใหม่</div>`;
+    }
   }else{
     matchDraft.split=null;
     preview=`<div class="swaphint">เลือกผู้เล่นให้ครบ 4 คน (ตอนนี้ ${selected.length}/4) · คู่ที่ล็อกไว้จะถูกเลือกพร้อมกัน</div>`;
   }
-  const gt=matchDraft.gameType&&GAME_TYPES[matchDraft.gameType]?matchDraft.gameType:'auto';
   openSheet(`<h3>จัดคู่ลงสนาม ${safeText(court.label)}</h3>
-    <div class="row between" style="margin:-4px 0 10px">
+    <div class="row between wrap" style="margin:-4px 0 10px">
       <span class="tag" style="margin:0;display:inline-flex;align-items:center;gap:4px">${icon(GAME_TYPES[gt].icon,12)} ${safeText(GAME_TYPES[gt].label)}</span>
-      <button class="btn mini ghost" onclick='openGameTypeChooser(${jsArg(matchDraft.courtId)},${jsArg(court.label)})'>เปลี่ยนรูปแบบ</button>
+      <div class="row" style="gap:6px"><button class="btn mini ghost" onclick="rerollMatchDraft()">↻ สุ่มใหม่</button>
+      <button class="btn mini ghost" onclick='openGameTypeChooser(${jsArg(matchDraft.courtId)},${jsArg(court.label)})'>เปลี่ยนรูปแบบ</button></div>
     </div>
     ${preview}
     <div style="max-height:46vh;overflow-y:auto;margin:6px 0">
@@ -1828,23 +2251,26 @@ function togglePick(id){
     if(selected.length+missing.length>4){toast('ต้องเว้นที่สำหรับคู่ประจำทั้งคู่ก่อน');return;}
     matchDraft.selected=[...selected,...missing];
   }
+  matchDraft.split=null;
   openMatchDraft();
 }
 function confirmMatch(){
   const draft=matchDraft;
   if(!draft)return;
   const court=store.courts.find(c=>c.id===draft.courtId);
-  if(!court||store.matches.some(m=>m.courtId===draft.courtId)){toast('สนามนี้ไม่พร้อมจัดคู่แล้ว');closeSheet();return;}
-  const eligible=new Set(queueList().map(p=>p.id));
+  if(!court||store.matches.some(match=>match.courtId===draft.courtId)){toast('สนามนี้ไม่พร้อมจัดคู่แล้ว');closeSheet();return;}
+  const eligible=new Set(queueList().map(player=>player.id));
   const selected=uniqueStrings(draft.selected);
-  if(selected.length!==4||selected.some(id=>!eligible.has(id))||!matchSelectionRespectsPartners(selected,eligible)){
-    toast('รายชื่อผู้เล่นหรือโหมดคู่เปลี่ยนแล้ว เลือกใหม่อีกครั้ง');openMatchDraft();return;
-  }
-  const split=bestSplit(selected.map(byId));
-  if(!split){toast('จัดทีมไม่สำเร็จ ลองเลือกใหม่');return;}
-  const now=Date.now();
   const gameType=GAME_TYPES[draft.gameType]?draft.gameType:'auto';
-  store.matches.push({id:mid(),courtId:court.id,side1:split.a.map(p=>p.id),side2:split.b.map(p=>p.id),gameType,sessionId:store.session.id,startedAt:now,updatedAt:now});
+  const players=selected.map(byId).filter(Boolean);
+  if(selected.length!==4||players.length!==4||selected.some(id=>!eligible.has(id))||!matchSelectionRespectsPartners(selected,eligible)||!selectionFitsGameType(players,gameType)){
+    toast('รายชื่อผู้เล่นไม่ตรงกติกาของรูปแบบเกมนี้ เลือกใหม่อีกครั้ง');openMatchDraft();return;
+  }
+  const split=splitMatchesSelection(draft.split,players,gameType)?draft.split:null;
+  if(!split){toast('คู่ที่แสดงไม่ตรงกติกาแล้ว กรุณาสุ่มหรือเลือกใหม่');openMatchDraft();return;}
+  split.diff=Math.abs(sum(split.a)-sum(split.b));
+  const now=Date.now();
+  store.matches.push({id:mid(),courtId:court.id,side1:split.a.map(player=>player.id),side2:split.b.map(player=>player.id),gameType,sessionId:store.session.id,startedAt:now,updatedAt:now});
   closeSheet();render();toast('เริ่มเกมสนาม '+court.label);
 }
 
@@ -1888,9 +2314,12 @@ function confirmEndMatch(courtId){
     });
   }
   store.matches=store.matches.filter(m=>m.id!==match.id);
+  store.session.completedMatches=completedMatchesOfSession()+1;store.session.updatedAt=endedAt;
+  const released=releaseOneGameRests(endedAt);
   const advanced=autoRound();
   closeSheet();render();
-  toast(advanced?'ทุกคนได้เล่นครบ → เริ่มรอบที่ '+store.round:'บันทึกผลสนาม '+(court?.label||'')+' แล้ว');
+  const releasedLabel=released.length?' · กลับเข้าคิว '+released.slice(0,2).map(p=>p.name).join(', ')+(released.length>2?' +'+(released.length-2):''):'';
+  toast((advanced?'ทุกคนได้เล่นครบ → เริ่มรอบที่ '+store.round:'บันทึกผลสนาม '+(court?.label||'')+' แล้ว')+releasedLabel);
 }
 function autoRound(){
   const eligible=store.players.filter(p=>p.inSession&&p.status!=='rest'&&!p.exempt);
